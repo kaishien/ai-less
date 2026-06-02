@@ -8,3 +8,5 @@ build
 .DS_Store
 .vite
 coverage
+.omx
+.pnpm-store

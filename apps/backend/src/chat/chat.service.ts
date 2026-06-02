@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ASSISTANT_NAME, ASSISTANT_ROLE_DESCRIPTION } from './assistant-profile';
 import { CHAT_TOOLS, GENERATE_IMAGE_TOOL, GenerateImageArgs } from './chat-tools';
 import { ChatMessage, ChatRequest, ChatResponse, ChatStreamEvent, LlmClient, LlmStreamOptions, LlmToolCall } from './chat.types';
-import { InputGuard } from './input-guard';
+import { InputGuard } from '../common/guard/input-guard';
 import { ImagesService } from '../images/images.service';
 import { TokenBudget } from './token-budget';
 

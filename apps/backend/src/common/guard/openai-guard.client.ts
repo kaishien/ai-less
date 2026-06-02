@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { ASSISTANT_ROLE_DESCRIPTION } from './assistant-profile';
-import { ChatMessage, GuardClient, GuardDecision } from './chat.types';
+import { ASSISTANT_ROLE_DESCRIPTION } from '../../chat/assistant-profile';
+import { ChatMessage, GuardClient, GuardDecision } from '../../chat/chat.types';
 
 const GUARD_SYSTEM_PROMPT = [
   'Ты — классификатор безопасности для технического ассистента. Профиль ассистента:',

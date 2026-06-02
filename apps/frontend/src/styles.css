@@ -57,6 +57,38 @@ body {
   background: #212121;
 }
 
+.view-transition-page {
+  view-transition-name: app-page;
+}
+
+::view-transition-old(app-page),
+::view-transition-new(app-page) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-old(app-page) {
+  animation-name: app-page-out;
+}
+
+::view-transition-new(app-page) {
+  animation-name: app-page-in;
+}
+
+@keyframes app-page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes app-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 .code-block__highlight pre {
   margin: 0;
   overflow-x: auto;
@@ -139,6 +171,15 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .view-transition-page {
+    view-transition-name: none;
+  }
+
+  ::view-transition-old(app-page),
+  ::view-transition-new(app-page) {
+    animation: none;
+  }
+
   .image-generation-shimmer__preview::before,
   .image-generation-shimmer__ridge,
   .image-generation-shimmer__spinner {

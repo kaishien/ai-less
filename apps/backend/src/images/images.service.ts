@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ImageClient, ImageRequest, ImageResponse } from './images.types';
-import { InputGuard } from '../chat/input-guard';
+import { InputGuard } from '../common/guard/input-guard';
 
 export const IMAGE_CLIENT = Symbol('IMAGE_CLIENT');
 

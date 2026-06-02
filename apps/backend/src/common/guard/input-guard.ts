@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ASSISTANT_NAME } from './assistant-profile';
-import { ChatMessage, GuardClient, GuardDecision } from './chat.types';
+import { ASSISTANT_NAME } from '../../chat/assistant-profile';
+import { ChatMessage, GuardClient, GuardDecision } from '../../chat/chat.types';
 
 export const GUARD_CLIENT = Symbol('GUARD_CLIENT');
 

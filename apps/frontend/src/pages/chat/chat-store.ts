@@ -83,7 +83,9 @@ type ChatStreamEvent =
       message: string;
     };
 
-class ChatStore {
+export class ChatStore {
+  private abortController: AbortController | null = null;
+
   input = '';
   isStreaming = false;
   error: string | null = null;
@@ -108,6 +110,11 @@ class ChatStore {
 
   setInput(value: string) {
     this.input = value;
+  }
+
+  dispose() {
+    this.abortController?.abort();
+    this.abortController = null;
   }
 
   async sendMessage() {
@@ -138,9 +145,13 @@ class ChatStore {
     this.isStreaming = true;
     this.error = null;
 
+    const abortController = new AbortController();
+    this.abortController = abortController;
+
     try {
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
+        signal: abortController.signal,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -159,12 +170,15 @@ class ChatStore {
       await this.readStream(response, assistantMessage);
     } catch (error) {
       runInAction(() => {
-        this.error = error instanceof Error ? error.message : 'Unknown chat error';
+        this.error = this.isAbortError(error) ? null : error instanceof Error ? error.message : 'Unknown chat error';
         this.discardEmptyAssistantMessage(assistantMessage.id);
       });
     } finally {
       runInAction(() => {
         this.isStreaming = false;
+        if (this.abortController === abortController) {
+          this.abortController = null;
+        }
       });
     }
   }
@@ -300,6 +314,10 @@ class ChatStore {
     }
   }
 
+  private isAbortError(error: unknown) {
+    return error instanceof DOMException && error.name === 'AbortError';
+  }
+
   get lastUsageLabel() {
     if (!this.usage) {
       return 'No usage yet';
@@ -316,5 +334,3 @@ class ChatStore {
     return `${this.budget.used}/${this.budget.limit} tokens · resets ${new Date(this.budget.resetsAt).toLocaleTimeString()}`;
   }
 }
-
-export const chatStore = new ChatStore();
