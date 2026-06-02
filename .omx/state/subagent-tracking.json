@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "sessions": {
+    "019e8815-30c7-7b22-b3f3-fd61a305e8c5": {
+      "session_id": "019e8815-30c7-7b22-b3f3-fd61a305e8c5",
+      "leader_thread_id": "019e8815-30c7-7b22-b3f3-fd61a305e8c5",
+      "updated_at": "2026-06-02T11:26:01.862Z",
+      "threads": {
+        "019e8815-30c7-7b22-b3f3-fd61a305e8c5": {
+          "thread_id": "019e8815-30c7-7b22-b3f3-fd61a305e8c5",
+          "kind": "leader",
+          "first_seen_at": "2026-06-02T11:26:01.862Z",
+          "last_seen_at": "2026-06-02T11:26:01.862Z",
+          "last_turn_id": "019e8815-30f8-79f3-a80a-e58faa31735d",
+          "turn_count": 1
+        }
+      }
+    },
+    "019e883a-9cef-7d23-ba5e-b1c55b57bb7e": {
+      "session_id": "019e883a-9cef-7d23-ba5e-b1c55b57bb7e",
+      "leader_thread_id": "019e883a-9cef-7d23-ba5e-b1c55b57bb7e",
+      "updated_at": "2026-06-02T12:09:39.181Z",
+      "threads": {
+        "019e883a-9cef-7d23-ba5e-b1c55b57bb7e": {
+          "thread_id": "019e883a-9cef-7d23-ba5e-b1c55b57bb7e",
+          "kind": "leader",
+          "first_seen_at": "2026-06-02T12:06:55.382Z",
+          "last_seen_at": "2026-06-02T12:06:55.382Z",
+          "last_turn_id": "019e883a-9d29-7fb2-a7da-6cc1a7c4c921",
+          "turn_count": 1
+        },
+        "019e883a-6676-7922-81a7-14afd08804e5": {
+          "thread_id": "019e883a-6676-7922-81a7-14afd08804e5",
+          "kind": "subagent",
+          "first_seen_at": "2026-06-02T12:07:09.297Z",
+          "last_seen_at": "2026-06-02T12:09:39.181Z",
+          "last_turn_id": "019e883d-1740-7f92-8ae1-7b8a6ff39727",
+          "turn_count": 3
+        }
+      }
+    },
+    "019e883a-6676-7922-81a7-14afd08804e5": {
+      "session_id": "019e883a-6676-7922-81a7-14afd08804e5",
+      "leader_thread_id": "019e883a-6676-7922-81a7-14afd08804e5",
+      "updated_at": "2026-06-02T13:11:29.329Z",
+      "threads": {
+        "019e883a-6676-7922-81a7-14afd08804e5": {
+          "thread_id": "019e883a-6676-7922-81a7-14afd08804e5",
+          "kind": "leader",
+          "first_seen_at": "2026-06-02T12:26:01.536Z",
+          "last_seen_at": "2026-06-02T13:11:29.329Z",
+          "last_turn_id": "019e8875-6b88-7852-941f-cae048caf873",
+          "turn_count": 13
+        }
+      }
+    }
+  }
+}

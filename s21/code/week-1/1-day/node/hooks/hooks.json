@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-start.sh"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/format-file.sh"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/approve-shell.sh",
+        "timeout": 30
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": ".cursor/hooks/audit-mcp.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/track-completion.sh",
+        "loop_limit": 5
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/validate-tool.sh",
+        "matcher": "Shell|Write|Delete"
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": ".cursor/hooks/audit-response.sh"
+      }
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "sessions": {
+    "019e8815-30c7-7b22-b3f3-fd61a305e8c5": {
+      "ordinary_no_progress_guard": {
+        "fingerprint": "ordinary|{\"title\":\"исправить ошибку коннекта\"}",
+        "first_seen_at": "2026-06-02T11:26:01.516Z",
+        "last_seen_at": "2026-06-02T11:26:01.516Z",
+        "repeat_count": 1,
+        "last_turn_id": "019e8815-30f8-79f3-a80a-e58faa31735d",
+        "last_thread_id": null
+      }
+    },
+    "019e883a-9cef-7d23-ba5e-b1c55b57bb7e": {
+      "ordinary_no_progress_guard": {
+        "fingerprint": "ordinary|{\"title\":\"оценить библиотеку для ui чата\"}",
+        "first_seen_at": "2026-06-02T12:06:55.120Z",
+        "last_seen_at": "2026-06-02T12:06:55.120Z",
+        "repeat_count": 1,
+        "last_turn_id": "019e883a-9d29-7fb2-a7da-6cc1a7c4c921",
+        "last_thread_id": null
+      }
+    },
+    "019e883a-6676-7922-81a7-14afd08804e5": {
+      "ordinary_no_progress_guard": {
+        "fingerprint": "ordinary|да, inline сломался из-за моего класса `bg-white/8`: для tailwind это невалидная opacity scale, поэтому стиль не генерировался нормально. исправил: - заменил на `bg-white/[0.08]` - добавил отдельный класс `.inline-code` - изолировал inline `<code>` от стилей shiki/code-block файлы: - [message.tsx](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/components/ai-elements/message.tsx) - [styles.css](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/styles.css) проверка: `pnpm --filter @ai-less/frontend build` проходит.",
+        "first_seen_at": "2026-06-02T13:11:29.020Z",
+        "last_seen_at": "2026-06-02T13:11:29.020Z",
+        "repeat_count": 1,
+        "last_turn_id": "019e8875-6b88-7852-941f-cae048caf873",
+        "last_thread_id": null
+      }
+    }
+  }
+}

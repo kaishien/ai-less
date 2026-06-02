@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка файлов</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Загрузка файлов</h1>
+            <p>Выберите файл для загрузки на сервер</p>
+        </header>
+
+        <main>
+            <!-- Секция загрузки файлов для RAG-индексации -->
+            <div class="upload-section">
+                <h2>📁 Загрузка файлов для RAG</h2>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" name="file" accept="*/*" required>
+                        <label for="fileInput" class="file-label">
+                            <span class="file-icon">📁</span>
+                            <span class="file-text">Выберите файл для RAG</span>
+                        </label>
+                    </div>
+
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <p>Выбранный файл: <span id="fileName"></span></p>
+                        <p>Размер: <span id="fileSize"></span></p>
+                    </div>
+
+                    <button type="submit" class="upload-btn" id="uploadBtn" disabled>
+                        Загрузить файл
+                    </button>
+                </form>
+            </div>
+
+            <!-- Секция отображения статуса загрузки -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <h3>Результат загрузки</h3>
+                <div id="resultContent"></div>
+            </div>
+
+            <!-- Секция чата с GigaChat. Ответы учитывают контекст, если индекс построен -->
+            <div class="chat-section">
+                <h2>💬 Чат с GigaChat</h2>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message system">
+                            <div class="message-content">
+                                Привет! Я GigaChat. Загрузите файлы выше, чтобы я мог отвечать на основе их содержимого.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-container">
+                        <form id="chatForm">
+                            <div class="input-group">
+                                <input type="text" id="messageInput" placeholder="Введите ваш вопрос..." required>
+                                <button type="submit" class="send-btn" id="sendBtn">
+                                    <span>📤</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Секция списка загруженных файлов с возможностью удаления -->
+            <div class="files-section">
+                <h2>📋 Загруженные файлы</h2>
+                <div class="files-list" id="filesList">
+                    <p class="no-files">Нет загруженных файлов</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/script.js"></script>
+</body>
+
+</html>

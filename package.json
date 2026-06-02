@@ -1,0 +1,17 @@
+{
+  "name": "ai-less",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:backend": "pnpm --filter @ai-less/backend start:dev",
+    "dev:frontend": "pnpm --filter @ai-less/frontend dev",
+    "build": "pnpm -r build",
+    "start:backend": "pnpm --filter @ai-less/backend start:prod",
+    "lint": "pnpm -r --if-present lint"
+  },
+  "packageManager": "pnpm@10.15.0"
+}

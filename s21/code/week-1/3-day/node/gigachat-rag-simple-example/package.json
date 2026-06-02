@@ -1,0 +1,16 @@
+{
+  "name": "gigachat-rag-simple-example",
+  "version": "1.0.0",
+  "description": "Simple example of RAG using GigaChat",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "gigachat": "^0.0.20"
+  }
+}

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Image Generator</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #080808;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #080808cc;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #1c1c1c;
+      padding: 0.9rem 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #5b5ef4, #a855f7);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .logo-text { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em; }
+    .logo-text span { color: #555; font-weight: 400; }
+
+    /* ── Prompt section ── */
+    .prompt-wrap {
+      max-width: 720px;
+      margin: 3.5rem auto 2rem;
+      padding: 0 1.5rem;
+    }
+    .prompt-label {
+      font-size: 0.75rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+    .prompt-box {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 14px;
+      padding: 1rem 1rem 1rem 1.25rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .prompt-box:focus-within {
+      border-color: #333;
+      box-shadow: 0 0 0 3px #5b5ef41a;
+    }
+    textarea {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      resize: none;
+      min-height: 24px;
+      max-height: 140px;
+      line-height: 1.6;
+      font-family: inherit;
+    }
+    textarea::placeholder { color: #3a3a3a; }
+
+    .btn-generate {
+      flex-shrink: 0;
+      background: #5b5ef4;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 0 1.25rem;
+      height: 38px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+    .btn-generate:hover:not(:disabled) { background: #4a4de3; }
+    .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #ffffff40;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      display: none;
+    }
+    .btn-generate.loading .spinner { display: block; }
+    .btn-generate.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      margin-top: 0.75rem;
+      padding: 0.7rem 1rem;
+      background: #1a0a0a;
+      border: 1px solid #3d1111;
+      border-radius: 9px;
+      color: #f87171;
+      font-size: 0.83rem;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Gallery ── */
+    .gallery-header {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .gallery-header h2 {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .count-badge {
+      font-size: 0.72rem;
+      background: #1a1a1a;
+      color: #555;
+      border-radius: 20px;
+      padding: 0.15rem 0.55rem;
+    }
+
+    .gallery {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+      columns: 4 220px;
+      column-gap: 8px;
+    }
+
+    .gallery-item {
+      break-inside: avoid;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      cursor: zoom-in;
+      animation: fadeUp 0.4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
+    .gallery-item img {
+      width: 100%;
+      display: block;
+      transition: transform 0.35s ease;
+    }
+    .gallery-item:hover img { transform: scale(1.03); }
+
+    .item-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #000000e0 0%, #00000060 35%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: flex-end;
+      padding: 0.9rem;
+    }
+    .gallery-item:hover .item-overlay { opacity: 1; }
+    .item-prompt {
+      font-size: 0.75rem;
+      color: #ccc;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* skeleton */
+    .skeleton {
+      break-inside: avoid;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      aspect-ratio: 1;
+      background: #111;
+      overflow: hidden;
+      position: relative;
+    }
+    .skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, #1e1e1e 50%, transparent 100%);
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+
+    /* empty state */
+    .empty {
+      column-span: all;
+      text-align: center;
+      padding: 5rem 0;
+      color: #2a2a2a;
+      font-size: 0.9rem;
+    }
+
+    /* lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000cc;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      box-shadow: 0 30px 80px #0008;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.5rem;
+      font-size: 1.5rem;
+      color: #888;
+      cursor: pointer;
+      background: none;
+      border: none;
+      line-height: 1;
+    }
+    .lightbox-close:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-icon">✦</div>
+    <div class="logo-text">ImageGen <span>/ AI Gallery</span></div>
+  </header>
+
+  <div class="prompt-wrap">
+    <p class="prompt-label">Describe your image</p>
+    <div class="prompt-box">
+      <textarea id="prompt" rows="1" placeholder="a futuristic city at dusk, cinematic lighting, 8k…"></textarea>
+      <button class="btn-generate" id="generateBtn" onclick="generate()">
+        <div class="spinner"></div>
+        <span class="btn-text">Generate</span>
+      </button>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="gallery-header">
+    <h2>Gallery</h2>
+    <span class="count-badge" id="countBadge">0</span>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="" />
+  </div>
+
+  <script>
+    const $prompt   = document.getElementById('prompt');
+    const $btn      = document.getElementById('generateBtn');
+    const $gallery  = document.getElementById('gallery');
+    const $error    = document.getElementById('errorMsg');
+    const $count    = document.getElementById('countBadge');
+    const $lightbox = document.getElementById('lightbox');
+    const $lbImg    = document.getElementById('lightboxImg');
+
+    let imageCount = 0;
+
+    /* ── textarea auto-resize ── */
+    $prompt.addEventListener('input', () => {
+      $prompt.style.height = 'auto';
+      $prompt.style.height = $prompt.scrollHeight + 'px';
+    });
+    $prompt.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate(); }
+    });
+
+    /* ── helpers ── */
+    function setError(msg) {
+      $error.textContent = msg;
+      $error.classList.toggle('visible', !!msg);
+    }
+
+    function updateCount(n) {
+      imageCount = n;
+      $count.textContent = n;
+    }
+
+    function buildCard(img) {
+      const el = document.createElement('div');
+      el.className = 'gallery-item';
+      el.innerHTML = `
+        <img src="${img.url}" alt="${img.prompt}" loading="lazy" />
+        <div class="item-overlay">
+          <p class="item-prompt">${img.prompt}</p>
+        </div>`;
+      el.querySelector('img').addEventListener('click', () => openLightbox(img.url, img.prompt));
+      return el;
+    }
+
+    /* ── lightbox ── */
+    function openLightbox(url, alt) {
+      $lbImg.src = url;
+      $lbImg.alt = alt;
+      $lightbox.classList.add('open');
+    }
+    function closeLightbox() { $lightbox.classList.remove('open'); }
+    $lightbox.addEventListener('click', e => { if (e.target === $lightbox) closeLightbox(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+    /* ── generate ── */
+    async function generate() {
+      const prompt = $prompt.value.trim();
+      if (!prompt || $btn.disabled) return;
+
+      setError('');
+      $btn.disabled = true;
+      $btn.classList.add('loading');
+
+      // remove empty state if present
+      $gallery.querySelector('.empty')?.remove();
+
+      const skeleton = document.createElement('div');
+      skeleton.className = 'skeleton';
+      $gallery.prepend(skeleton);
+
+      try {
+        const res = await fetch('/api/images/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Generation failed');
+
+        skeleton.replaceWith(buildCard(data));
+        updateCount(imageCount + 1);
+        $prompt.value = '';
+        $prompt.style.height = 'auto';
+      } catch (err) {
+        skeleton.remove();
+        setError(err.message);
+      } finally {
+        $btn.disabled = false;
+        $btn.classList.remove('loading');
+      }
+    }
+
+    /* ── load existing gallery ── */
+    async function loadGallery() {
+      const res  = await fetch('/api/images');
+      const list = await res.json();
+
+      updateCount(list.length);
+
+      if (!list.length) {
+        $gallery.innerHTML = '<p class="empty">No images yet — generate your first one!</p>';
+        return;
+      }
+      list.forEach(img => $gallery.appendChild(buildCard(img)));
+    }
+
+    loadGallery();
+  </script>
+</body>
+</html>

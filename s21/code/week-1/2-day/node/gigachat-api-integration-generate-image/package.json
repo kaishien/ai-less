@@ -1,0 +1,18 @@
+{
+  "name": "img-gen",
+  "version": "1.0.0",
+  "description": "Image generation with GigaChat",
+  "main": "./src/demo.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ./src/demo.js",
+    "dev": "node --watch ./src/demo.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "gigachat": "^0.0.16"
+  }
+}

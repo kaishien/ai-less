@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-start.sh"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "python .cursor/hooks/format-file.py"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "python .cursor/hooks/approve-shell.py",
+        "timeout": 30
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": ".cursor/hooks/audit-mcp.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/track-completion.sh",
+        "loop_limit": 5
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/validate-tool.sh",
+        "matcher": "Shell|Write|Delete"
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": ".cursor/hooks/audit-response.sh"
+      }
+    ]
+  }
+}
