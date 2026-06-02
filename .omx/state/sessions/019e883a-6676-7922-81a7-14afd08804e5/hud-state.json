@@ -1,6 +1,6 @@
 {
-  "last_turn_at": "2026-06-02T13:11:29.344Z",
-  "turn_count": 13,
-  "last_progress_at": "2026-06-02T13:11:29.344Z",
-  "last_agent_output": "Да, inline сломался из-за моего класса `bg-white/8`: для Tailwind это невалидная opacity scale, поэт"
+  "last_turn_at": "2026-06-02T21:23:24.451Z",
+  "turn_count": 22,
+  "last_progress_at": "2026-06-02T21:23:24.451Z",
+  "last_agent_output": "Сделал. Скролл теперь на внешней области чата во всю ширину viewport, поэтому scrollbar будет у кра"
 }

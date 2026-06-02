@@ -22,11 +22,11 @@
     },
     "019e883a-6676-7922-81a7-14afd08804e5": {
       "ordinary_no_progress_guard": {
-        "fingerprint": "ordinary|да, inline сломался из-за моего класса `bg-white/8`: для tailwind это невалидная opacity scale, поэтому стиль не генерировался нормально. исправил: - заменил на `bg-white/[0.08]` - добавил отдельный класс `.inline-code` - изолировал inline `<code>` от стилей shiki/code-block файлы: - [message.tsx](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/components/ai-elements/message.tsx) - [styles.css](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/styles.css) проверка: `pnpm --filter @ai-less/frontend build` проходит.",
-        "first_seen_at": "2026-06-02T13:11:29.020Z",
-        "last_seen_at": "2026-06-02T13:11:29.020Z",
+        "fingerprint": "ordinary|сделал. скролл теперь на внешней области чата во всю ширину viewport, поэтому scrollbar будет у края браузера, а сам контент остался центрированным `max-w-3xl`. изменение в [conversation.tsx](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/components/ai-elements/conversation.tsx:8): - `conversation`: `overflow-y-auto` - `conversationcontent`: убрал `overflow-y-auto`, оставил `max-w-3xl` проверка: `pnpm --filter @ai-less/frontend build` проходит.",
+        "first_seen_at": "2026-06-02T21:23:23.975Z",
+        "last_seen_at": "2026-06-02T21:23:23.975Z",
         "repeat_count": 1,
-        "last_turn_id": "019e8875-6b88-7852-941f-cae048caf873",
+        "last_turn_id": "019e8a37-ef9a-7ef3-b1f2-845cdebe4f58",
         "last_thread_id": null
       }
     }

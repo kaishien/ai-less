@@ -7,7 +7,7 @@ interface ConversationProps extends ComponentPropsWithoutRef<'section'> {
 
 export function Conversation({ children, className = '', ...props }: ConversationProps) {
   return (
-    <section className={cx('min-h-0 overflow-hidden', className)} {...props}>
+    <section className={cx('min-h-0 overflow-y-auto', className)} {...props}>
       {children}
     </section>
   );
@@ -19,7 +19,7 @@ interface ConversationContentProps extends ComponentPropsWithoutRef<'div'> {
 
 export function ConversationContent({ children, className = '', ...props }: ConversationContentProps) {
   return (
-    <div className={cx('mx-auto flex h-full w-full max-w-3xl flex-col gap-5 overflow-y-auto px-4 py-6 md:px-6 md:py-8', className)} {...props}>
+    <div className={cx('mx-auto flex min-h-full w-full max-w-3xl flex-col gap-5 px-4 py-6 md:px-6 md:py-8', className)} {...props}>
       {children}
     </div>
   );

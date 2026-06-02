@@ -1,4 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cx } from '../../lib/classes';
 import { CodeBlock } from './code-block';
 
@@ -42,8 +44,53 @@ interface MessageResponseProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
 export function MessageResponse({ children, className = '', ...props }: MessageResponseProps) {
   if (typeof children === 'string') {
     return (
-      <div className={cx('m-0 space-y-2 break-words text-[0.96rem] leading-7', className)} {...props}>
-        <RichText content={children} />
+      <div className={cx('markdown-response m-0 break-words text-[0.96rem] leading-7', className)} {...props}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            p: ({ children }) => <p className="my-2 whitespace-pre-wrap">{children}</p>,
+            ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+            ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+            li: ({ children }) => <li className="pl-1">{children}</li>,
+            h1: ({ children }) => <h1 className="mb-2 mt-4 text-xl font-semibold leading-8">{children}</h1>,
+            h2: ({ children }) => <h2 className="mb-2 mt-4 text-lg font-semibold leading-7">{children}</h2>,
+            h3: ({ children }) => <h3 className="mb-2 mt-3 text-base font-semibold leading-7">{children}</h3>,
+            a: ({ children, href }) => (
+              <a className="text-sky-300 underline decoration-sky-300/40 underline-offset-4 hover:text-sky-200" href={href} rel="noreferrer" target="_blank">
+                {children}
+              </a>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="my-3 border-l-2 border-white/20 pl-3 text-zinc-300">{children}</blockquote>
+            ),
+            table: ({ children }) => (
+              <div className="my-3 overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full border-collapse text-left text-sm">{children}</table>
+              </div>
+            ),
+            thead: ({ children }) => <thead className="bg-white/[0.06] text-zinc-200">{children}</thead>,
+            th: ({ children }) => <th className="border-b border-white/10 px-3 py-2 font-semibold">{children}</th>,
+            td: ({ children }) => <td className="border-t border-white/8 px-3 py-2 text-zinc-300">{children}</td>,
+            code: ({ className: codeClassName, children }) => {
+              const language = /language-([\w-]+)/.exec(codeClassName ?? '')?.[1];
+              const rawCode = String(children);
+              const code = rawCode.replace(/\n$/, '');
+              const isBlock = Boolean(language || rawCode.endsWith('\n'));
+
+              if (isBlock) {
+                return <CodeBlock code={code} language={language} />;
+              }
+
+              return (
+                <code className="inline-code rounded-md border border-white/10 bg-white/[0.08] px-1.5 py-0.5 font-mono text-[0.88em] text-zinc-100">
+                  {children}
+                </code>
+              );
+            },
+          }}
+        >
+          {children}
+        </ReactMarkdown>
       </div>
     );
   }
@@ -53,134 +100,4 @@ export function MessageResponse({ children, className = '', ...props }: MessageR
       {children}
     </div>
   );
-}
-
-function RichText({ content }: { content: string }) {
-  const parts = parseCodeBlocks(content);
-
-  return (
-    <>
-      {parts.map((part, index) =>
-        part.type === 'code' ? (
-          <CodeBlock code={part.code} language={part.language} key={`${part.type}-${index}`} />
-        ) : (
-          <TextBlock content={part.content} key={`${part.type}-${index}`} />
-        ),
-      )}
-    </>
-  );
-}
-
-function TextBlock({ content }: { content: string }) {
-  const blocks = content.split(/\n{2,}/).filter((block) => block.length > 0);
-
-  return (
-    <>
-      {blocks.map((block, index) => (
-        <p className="my-2 whitespace-pre-wrap" key={index}>
-          <InlineText content={block} />
-        </p>
-      ))}
-    </>
-  );
-}
-
-function InlineText({ content }: { content: string }) {
-  const parts = parseInlineCode(content);
-
-  return (
-    <>
-      {parts.map((part, index) =>
-        part.type === 'code' ? (
-          <code
-            className="inline-code rounded-md border border-white/10 bg-white/[0.08] px-1.5 py-0.5 font-mono text-[0.88em] text-zinc-100"
-            key={`${part.type}-${index}`}
-          >
-            {part.content}
-          </code>
-        ) : (
-          <span key={`${part.type}-${index}`}>{part.content}</span>
-        ),
-      )}
-    </>
-  );
-}
-
-type InlineTextPart = {
-  type: 'text' | 'code';
-  content: string;
-};
-
-function parseInlineCode(content: string): InlineTextPart[] {
-  const parts: InlineTextPart[] = [];
-  const inlineCodePattern = /`([^`\n]+)`/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = inlineCodePattern.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({
-        type: 'text',
-        content: content.slice(lastIndex, match.index),
-      });
-    }
-
-    parts.push({
-      type: 'code',
-      content: match[1],
-    });
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({
-      type: 'text',
-      content: content.slice(lastIndex),
-    });
-  }
-
-  return parts.length > 0 ? parts : [{ type: 'text', content }];
-}
-
-type RichTextPart =
-  | {
-      type: 'text';
-      content: string;
-    }
-  | {
-      type: 'code';
-      language?: string;
-      code: string;
-    };
-
-function parseCodeBlocks(content: string): RichTextPart[] {
-  const parts: RichTextPart[] = [];
-  const codeBlockPattern = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = codeBlockPattern.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({
-        type: 'text',
-        content: content.slice(lastIndex, match.index),
-      });
-    }
-
-    parts.push({
-      type: 'code',
-      language: match[1],
-      code: match[2].replace(/\n$/, ''),
-    });
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({
-      type: 'text',
-      content: content.slice(lastIndex),
-    });
-  }
-
-  return parts.length > 0 ? parts : [{ type: 'text', content }];
 }

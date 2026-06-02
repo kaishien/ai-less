@@ -25,3 +25,36 @@ body {
   white-space: break-spaces;
   vertical-align: baseline;
 }
+
+.image-loader::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.08) 45%, transparent 60%),
+    radial-gradient(circle at 28% 20%, rgb(255 255 255 / 0.08), transparent 28%),
+    radial-gradient(circle at 72% 74%, rgb(255 255 255 / 0.06), transparent 32%);
+  animation: image-loader-shimmer 1.8s linear infinite;
+}
+
+.image-loader > div:first-child {
+  position: relative;
+  z-index: 1;
+  animation: image-loader-spin 0.9s linear infinite;
+}
+
+@keyframes image-loader-shimmer {
+  from {
+    transform: translateX(-45%);
+  }
+
+  to {
+    transform: translateX(45%);
+  }
+}
+
+@keyframes image-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

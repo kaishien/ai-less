@@ -1,6 +1,9 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ASSISTANT_NAME, ASSISTANT_ROLE_DESCRIPTION } from './assistant-profile';
-import { ChatMessage, ChatRequest, ChatResponse, ChatStreamEvent, LlmClient } from './chat.types';
+import { CHAT_TOOLS, GENERATE_IMAGE_TOOL, GenerateImageArgs } from './chat-tools';
+import { ChatMessage, ChatRequest, ChatResponse, ChatStreamEvent, LlmClient, LlmStreamOptions, LlmToolCall } from './chat.types';
+import { InputGuard } from './input-guard';
+import { ImagesService } from '../images/images.service';
 import { TokenBudget } from './token-budget';
 
 export const LLM_CLIENT = Symbol('LLM_CLIENT');
@@ -15,10 +18,18 @@ export class ChatService {
     @Inject(LLM_CLIENT) private readonly llmClient: LlmClient,
     @Inject(TokenBudget)
     private readonly tokenBudget: TokenBudget,
+    @Inject(InputGuard) private readonly inputGuard: InputGuard,
+    @Inject(ImagesService) private readonly imagesService: ImagesService,
   ) {}
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
     const messages = this.normalizeMessages(request.messages);
+    const guard = await this.inputGuard.inspect(messages);
+
+    if (guard.blocked) {
+      return this.createGuardedResponse(guard.response ?? 'Запрос отклонен политикой роли ассистента.', guard.reason);
+    }
+
     this.assertBudgetAvailable(messages);
 
     const result = await this.completeWithRetry(messages);
@@ -45,6 +56,35 @@ export class ChatService {
 
   async *streamChat(request: ChatRequest): AsyncGenerator<ChatStreamEvent> {
     const messages = this.normalizeMessages(request.messages);
+    const guard = await this.inputGuard.inspect(messages);
+
+    if (guard.blocked) {
+      yield {
+        type: 'assistant',
+        assistant: {
+          name: ASSISTANT_NAME,
+          roleDescription: ASSISTANT_ROLE_DESCRIPTION,
+        },
+      };
+
+      const response = this.createGuardedResponse(
+        guard.response ?? 'Запрос отклонен политикой роли ассистента.',
+        guard.reason,
+      );
+
+      yield {
+        type: 'delta',
+        delta: response.message.content,
+      };
+      yield {
+        type: 'done',
+        message: response.message,
+        usage: response.usage,
+        budget: response.budget,
+      };
+      return;
+    }
+
     this.assertBudgetAvailable(messages);
 
     yield {
@@ -55,13 +95,14 @@ export class ChatService {
       },
     };
 
-    const stream = await this.streamWithRetry(messages);
+    const stream = await this.streamWithRetry(messages, { tools: CHAT_TOOLS });
     let content = '';
     let usage = {
       prompt_tokens: 0,
       completion_tokens: 0,
       total_tokens: 0,
     };
+    let toolCalls: LlmToolCall[] | undefined;
 
     for await (const chunk of stream) {
       if (chunk.delta) {
@@ -70,6 +111,10 @@ export class ChatService {
           type: 'delta',
           delta: chunk.delta,
         };
+      }
+
+      if (chunk.toolCalls) {
+        toolCalls = chunk.toolCalls;
       }
 
       if (chunk.usage) {
@@ -83,6 +128,13 @@ export class ChatService {
       `[chat] prompt_tokens=${usage.prompt_tokens} completion_tokens=${usage.completion_tokens} total_tokens=${usage.total_tokens}`,
     );
 
+    const imageCall = toolCalls?.find((call) => call.name === GENERATE_IMAGE_TOOL);
+
+    if (imageCall) {
+      yield* this.runImageTool(imageCall, content, usage, this.serializeBudget(budget));
+      return;
+    }
+
     yield {
       type: 'done',
       message: {
@@ -92,6 +144,60 @@ export class ChatService {
       usage,
       budget: this.serializeBudget(budget),
     };
+  }
+
+  private async *runImageTool(
+    call: LlmToolCall,
+    assistantText: string,
+    usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+    budget: ChatResponse['budget'],
+  ): AsyncGenerator<ChatStreamEvent> {
+    const args = this.parseImageArgs(call.arguments);
+    const prompt = (args.prompt ?? '').trim();
+
+    if (!prompt) {
+      yield {
+        type: 'done',
+        message: {
+          role: 'assistant',
+          content: assistantText || 'Не удалось понять, какое изображение сгенерировать. Уточни описание.',
+        },
+        usage,
+        budget,
+      };
+      return;
+    }
+
+    yield { type: 'image_pending', prompt };
+
+    const image = await this.imagesService.generate({ prompt, size: args.size });
+
+    console.log(`[chat] image_generated total_tokens=${image.usage?.total_tokens ?? 0}`);
+
+    yield {
+      type: 'image',
+      prompt: image.prompt,
+      image: image.image,
+      usage: image.usage,
+    };
+
+    yield {
+      type: 'done',
+      message: {
+        role: 'assistant',
+        content: assistantText || `Готово. Изображение по запросу: ${image.prompt}`,
+      },
+      usage,
+      budget,
+    };
+  }
+
+  private parseImageArgs(raw: string): GenerateImageArgs {
+    try {
+      return JSON.parse(raw) as GenerateImageArgs;
+    } catch {
+      return {};
+    }
   }
 
   private async completeWithRetry(messages: ChatMessage[]) {
@@ -113,12 +219,12 @@ export class ChatService {
     }
   }
 
-  private async streamWithRetry(messages: ChatMessage[]) {
+  private async streamWithRetry(messages: ChatMessage[], options?: LlmStreamOptions) {
     let attempt = 0;
 
     for (;;) {
       try {
-        return await this.llmClient.stream(messages);
+        return await this.llmClient.stream(messages, options);
       } catch (error) {
         if (!this.isRateLimitError(error) || attempt >= MAX_RETRIES) {
           throw error;
@@ -189,6 +295,28 @@ export class ChatService {
       used: budget.used,
       limit: budget.limit,
       resetsAt: budget.resetsAt.toISOString(),
+    };
+  }
+
+  private createGuardedResponse(content: string, reason = 'guarded'): ChatResponse {
+    const budget = this.tokenBudget.snapshot();
+    console.log(`[chat] guarded reason=${reason} prompt_tokens=0 completion_tokens=0 total_tokens=0`);
+
+    return {
+      assistant: {
+        name: ASSISTANT_NAME,
+        roleDescription: ASSISTANT_ROLE_DESCRIPTION,
+      },
+      message: {
+        role: 'assistant',
+        content,
+      },
+      usage: {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      },
+      budget: this.serializeBudget(budget),
     };
   }
 }

@@ -6,6 +6,9 @@ export interface ChatMessage {
   id: string;
   role: ChatRole;
   content: string;
+  imageUrl?: string;
+  imagePrompt?: string;
+  imageLoading?: boolean;
 }
 
 interface ChatUsage {
@@ -31,6 +34,19 @@ interface ChatResponse {
   };
 }
 
+interface ImageResponse {
+  prompt: string;
+  image: {
+    dataUrl: string;
+    mimeType: string;
+  };
+  usage?: {
+    total_tokens?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+  };
+}
+
 type ChatStreamEvent =
   | {
       type: 'assistant';
@@ -39,6 +55,19 @@ type ChatStreamEvent =
   | {
       type: 'delta';
       delta: string;
+    }
+  | {
+      type: 'image_pending';
+      prompt: string;
+    }
+  | {
+      type: 'image';
+      prompt: string;
+      image: {
+        dataUrl: string;
+        mimeType: string;
+      };
+      usage?: ImageResponse['usage'];
     }
   | {
       type: 'done';
@@ -88,11 +117,23 @@ class ChatStore {
       return;
     }
 
+    const history = this.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
+
+    const assistantMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+    };
+
     this.messages.push({
       id: crypto.randomUUID(),
       role: 'user',
       content: text,
     });
+    this.messages.push(assistantMessage);
     this.input = '';
     this.isStreaming = true;
     this.error = null;
@@ -104,10 +145,7 @@ class ChatStore {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: this.messages.map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
+          messages: [...history, { role: 'user', content: text }],
         }),
       });
 
@@ -118,10 +156,11 @@ class ChatStore {
         throw new Error(message);
       }
 
-      await this.readStream(response);
+      await this.readStream(response, assistantMessage);
     } catch (error) {
       runInAction(() => {
         this.error = error instanceof Error ? error.message : 'Unknown chat error';
+        this.discardEmptyAssistantMessage(assistantMessage.id);
       });
     } finally {
       runInAction(() => {
@@ -130,16 +169,11 @@ class ChatStore {
     }
   }
 
-  private async readStream(response: Response) {
+  private async readStream(response: Response, assistantMessage: ChatMessage) {
     if (!response.body) {
       throw new Error('Chat stream is not readable.');
     }
 
-    const assistantMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '',
-    };
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -190,6 +224,37 @@ class ChatStore {
       return;
     }
 
+    if (event.type === 'image_pending') {
+      runInAction(() => {
+        const message = this.ensureAssistantMessage(assistantMessage);
+        message.imagePrompt = event.prompt;
+        message.imageLoading = true;
+
+        if (!message.content) {
+          message.content = `Генерирую изображение: ${event.prompt}`;
+        }
+      });
+      return;
+    }
+
+    if (event.type === 'image') {
+      runInAction(() => {
+        const message = this.ensureAssistantMessage(assistantMessage);
+        message.imageUrl = event.image.dataUrl;
+        message.imagePrompt = event.prompt;
+        message.imageLoading = false;
+
+        if (event.usage?.total_tokens) {
+          this.usage = {
+            prompt_tokens: event.usage.input_tokens ?? 0,
+            completion_tokens: event.usage.output_tokens ?? 0,
+            total_tokens: event.usage.total_tokens,
+          };
+        }
+      });
+      return;
+    }
+
     if (event.type === 'done') {
       console.log(
         `[chat] prompt_tokens=${event.usage.prompt_tokens} completion_tokens=${event.usage.completion_tokens} total_tokens=${event.usage.total_tokens}`,
@@ -197,23 +262,42 @@ class ChatStore {
 
       runInAction(() => {
         const currentAssistantMessage = this.messages.find((message) => message.id === assistantMessage.id);
+        const finalized = currentAssistantMessage ?? this.ensureAssistantMessage(assistantMessage);
 
-        if (currentAssistantMessage) {
-          currentAssistantMessage.content = event.message.content;
-        } else {
-          this.messages.push({
-            ...assistantMessage,
-            content: event.message.content,
-          });
+        if (event.message.content) {
+          finalized.content = event.message.content;
         }
+        finalized.imageLoading = false;
 
-        this.usage = event.usage;
+        // Keep the image-generation token usage when this turn produced an image.
+        if (!finalized.imageUrl) {
+          this.usage = event.usage;
+        }
         this.budget = event.budget;
       });
       return;
     }
 
     throw new Error(event.message);
+  }
+
+  private ensureAssistantMessage(assistantMessage: ChatMessage) {
+    const existing = this.messages.find((message) => message.id === assistantMessage.id);
+
+    if (existing) {
+      return existing;
+    }
+
+    this.messages.push(assistantMessage);
+    return assistantMessage;
+  }
+
+  private discardEmptyAssistantMessage(id: string) {
+    const message = this.messages.find((item) => item.id === id);
+
+    if (message && !message.content && !message.imageUrl && !message.imageLoading) {
+      this.messages = this.messages.filter((item) => item.id !== id);
+    }
   }
 
   get lastUsageLabel() {

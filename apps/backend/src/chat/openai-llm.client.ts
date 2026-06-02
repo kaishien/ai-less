@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SYSTEM_PROMPT } from './assistant-profile';
-import { ChatMessage, LlmChatResult, LlmClient, LlmStreamChunk } from './chat.types';
+import { TOOL_GUIDANCE } from './chat-tools';
+import { ChatMessage, LlmChatResult, LlmClient, LlmStreamChunk, LlmStreamOptions } from './chat.types';
 
 @Injectable()
 export class OpenAiLlmClient implements LlmClient {
@@ -24,20 +25,34 @@ export class OpenAiLlmClient implements LlmClient {
     };
   }
 
-  async stream(messages: ChatMessage[]): Promise<AsyncIterable<LlmStreamChunk>> {
+  async stream(messages: ChatMessage[], options?: LlmStreamOptions): Promise<AsyncIterable<LlmStreamChunk>> {
+    const tools = options?.tools?.map((tool) => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      },
+    }));
+    const hasTools = Boolean(tools && tools.length);
+
     const stream = await this.getClient().chat.completions.create({
       model: this.model,
       stream: true,
       stream_options: {
         include_usage: true,
       },
-      messages: this.toOpenAiMessages(messages),
+      messages: this.toOpenAiMessages(messages, hasTools ? TOOL_GUIDANCE : undefined),
+      ...(hasTools ? { tools, tool_choice: 'auto' as const } : {}),
     });
 
     return {
       async *[Symbol.asyncIterator]() {
+        const toolAccumulator = new Map<number, { id: string; name: string; arguments: string }>();
+
         for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content;
+          const choice = chunk.choices[0];
+          const delta = choice?.delta?.content;
           const usage = chunk.usage
             ? {
                 prompt_tokens: chunk.usage.prompt_tokens ?? 0,
@@ -46,11 +61,34 @@ export class OpenAiLlmClient implements LlmClient {
               }
             : undefined;
 
-          if (typeof delta === 'string' || usage) {
-            yield {
-              delta: typeof delta === 'string' ? delta : undefined,
-              usage,
-            };
+          for (const toolDelta of choice?.delta?.tool_calls ?? []) {
+            const index = toolDelta.index ?? 0;
+            const current = toolAccumulator.get(index) ?? { id: '', name: '', arguments: '' };
+
+            if (toolDelta.id) {
+              current.id = toolDelta.id;
+            }
+            if (toolDelta.function?.name) {
+              current.name = toolDelta.function.name;
+            }
+            if (toolDelta.function?.arguments) {
+              current.arguments += toolDelta.function.arguments;
+            }
+
+            toolAccumulator.set(index, current);
+          }
+
+          if (typeof delta === 'string' && delta.length > 0) {
+            yield { delta };
+          }
+
+          if (choice?.finish_reason === 'tool_calls' && toolAccumulator.size > 0) {
+            yield { toolCalls: [...toolAccumulator.values()] };
+            toolAccumulator.clear();
+          }
+
+          if (usage) {
+            yield { usage };
           }
         }
       },
@@ -78,11 +116,11 @@ export class OpenAiLlmClient implements LlmClient {
     return this.client;
   }
 
-  private toOpenAiMessages(messages: ChatMessage[]) {
+  private toOpenAiMessages(messages: ChatMessage[], extraSystemPrompt?: string) {
     return [
       {
         role: 'system' as const,
-        content: SYSTEM_PROMPT,
+        content: extraSystemPrompt ? `${SYSTEM_PROMPT} ${extraSystemPrompt}` : SYSTEM_PROMPT,
       },
       ...messages.map((message) => ({
         role: message.role,
