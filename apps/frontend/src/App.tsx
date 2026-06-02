@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { Conversation, ConversationContent } from './components/ai-elements/conversation';
+import { Conversation, ConversationContent, ConversationScrollButton } from './components/ai-elements/conversation';
 import { Message, MessageContent, MessageResponse } from './components/ai-elements/message';
-import { PromptInput, PromptInputSubmit, PromptInputTextarea } from './components/ai-elements/prompt-input';
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from './components/ai-elements/prompt-input';
 import { chatStore } from './stores/chatStore';
 
 export const App = observer(() => {
@@ -52,8 +57,8 @@ export const App = observer(() => {
           </div>
         </header>
 
-        <Conversation>
-          <ConversationContent>
+        <Conversation className="min-h-0 overflow-y-auto">
+          <ConversationContent className="mx-auto min-h-full w-full max-w-3xl gap-5 px-4 py-6 md:px-6 md:py-8">
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-zinc-400">
               {chatStore.assistant.roleDescription}
             </div>
@@ -63,29 +68,41 @@ export const App = observer(() => {
                   className={
                     message.role === 'user'
                       ? 'bg-[#303030] text-zinc-100'
-                      : 'max-w-full bg-transparent px-0 text-zinc-100 md:max-w-[82%]'
+                      : 'w-full max-w-full bg-transparent px-0 text-zinc-100 md:max-w-[82%]'
                   }
                 >
-                  <MessageResponse>{message.content || 'Печатает...'}</MessageResponse>
+                  {message.imageLoading && message.content.startsWith('Генерирую изображение:') ? null : (
+                    <MessageResponse>{message.content || 'Печатает...'}</MessageResponse>
+                  )}
                   {message.imageLoading ? (
-                    <figure className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                    <figure className="mt-3">
                       <div
-                        className="image-loader relative flex aspect-square w-full flex-col items-center justify-center gap-4 overflow-hidden bg-[#171717] px-6 text-center"
+                        className="image-generation-loader relative flex w-full flex-col gap-3 text-left"
                         aria-label="Генерация изображения"
+                        aria-live="polite"
                       >
-                        <div className="h-10 w-10 rounded-full border-2 border-white/15 border-t-zinc-100" />
-                        <div className="relative z-10 max-w-sm">
-                          <p className="m-0 text-sm font-medium text-zinc-100">Генерирую изображение</p>
-                          <p className="m-0 mt-2 line-clamp-3 text-xs leading-5 text-zinc-400">
-                            {message.imagePrompt}
-                          </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="m-0 text-sm font-medium text-zinc-100">Генерирую изображение</p>
+                            <p className="m-0 mt-1 text-xs text-zinc-500">Готовлю превью</p>
+                          </div>
+                          <div className="image-generation-shimmer__spinner size-9 shrink-0 rounded-full border-2 border-white/15 border-t-zinc-100" />
+                        </div>
+                        <div className="grid place-items-center">
+                          <div className="image-generation-shimmer__preview aspect-square w-full">
+                            <div className="image-generation-shimmer__ridge image-generation-shimmer__ridge--wide" />
+                            <div className="image-generation-shimmer__ridge image-generation-shimmer__ridge--medium" />
+                            <div className="image-generation-shimmer__ridge image-generation-shimmer__ridge--short" />
+                          </div>
+                        </div>
+                        <div>
+                          {message.imagePrompt ? (
+                            <p className="m-0 line-clamp-2 text-xs leading-5 text-zinc-400">{message.imagePrompt}</p>
+                          ) : (
+                            <p className="m-0 h-4 w-2/3 rounded-full bg-white/8" aria-hidden="true" />
+                          )}
                         </div>
                       </div>
-                      {message.imagePrompt ? (
-                        <figcaption className="border-t border-white/10 px-3 py-2 text-xs text-zinc-400">
-                          {message.imagePrompt}
-                        </figcaption>
-                      ) : null}
                     </figure>
                   ) : message.imageUrl ? (
                     <figure className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
@@ -123,24 +140,32 @@ export const App = observer(() => {
             ) : null}
             <div ref={bottomRef} />
           </ConversationContent>
+          <ConversationScrollButton />
         </Conversation>
 
-        <PromptInput className="sticky bottom-0 z-20 border-t border-white/8 bg-[#212121]/95 backdrop-blur" onSubmit={() => void chatStore.sendMessage()}>
-          <PromptInputTextarea
-            label="Сообщение"
-            placeholder="Спроси что-нибудь или попроси нарисовать изображение..."
-            value={chatStore.input}
-            onChange={(event) => chatStore.setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                void chatStore.sendMessage();
-              }
-            }}
-          />
-          <PromptInputSubmit disabled={!chatStore.input.trim() || chatStore.isStreaming}>
-            {chatStore.isStreaming ? '...' : 'Send'}
-          </PromptInputSubmit>
+        <PromptInput
+          className="relative sticky bottom-0 z-20 mx-auto w-full max-w-5xl bg-[#212121]/95 px-4 pb-5 pt-3 backdrop-blur md:px-6 md:pb-6 [&_[data-slot=input-group]]:min-h-[58px] [&_[data-slot=input-group]]:rounded-[30px] [&_[data-slot=input-group]]:border-white/10 [&_[data-slot=input-group]]:bg-[#2f3033] [&_[data-slot=input-group]]:shadow-[0_10px_28px_rgba(0,0,0,0.22)] [&_[data-slot=input-group]]:ring-1 [&_[data-slot=input-group]]:ring-white/5 [&_[data-slot=input-group]:has(textarea:focus-visible)]:border-white/20 [&_[data-slot=input-group]:has(textarea:focus-visible)]:bg-[#34363a] [&_[data-slot=input-group]:has(textarea:focus-visible)]:ring-white/10"
+          onSubmit={() => void chatStore.sendMessage()}
+        >
+          <PromptInputBody>
+            <PromptInputTextarea
+              className="min-h-[56px] px-5 py-[17px] pr-16 text-[0.96rem] leading-[22px] text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-0"
+              placeholder="Спроси что-нибудь или попроси нарисовать изображение..."
+              value={chatStore.input}
+              onChange={(event) => chatStore.setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  void chatStore.sendMessage();
+                }
+              }}
+            />
+            <PromptInputSubmit
+              className="absolute bottom-2.5 right-2.5 size-10 rounded-full bg-zinc-100 text-zinc-950 hover:bg-white disabled:bg-white/6 disabled:text-zinc-500"
+              disabled={!chatStore.input.trim() || chatStore.isStreaming}
+              status={chatStore.isStreaming ? 'streaming' : 'ready'}
+            />
+          </PromptInputBody>
         </PromptInput>
       </section>
 

@@ -22,11 +22,31 @@
     },
     "019e883a-6676-7922-81a7-14afd08804e5": {
       "ordinary_no_progress_guard": {
-        "fingerprint": "ordinary|сделал. скролл теперь на внешней области чата во всю ширину viewport, поэтому scrollbar будет у края браузера, а сам контент остался центрированным `max-w-3xl`. изменение в [conversation.tsx](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/components/ai-elements/conversation.tsx:8): - `conversation`: `overflow-y-auto` - `conversationcontent`: убрал `overflow-y-auto`, оставил `max-w-3xl` проверка: `pnpm --filter @ai-less/frontend build` проходит.",
-        "first_seen_at": "2026-06-02T21:23:23.975Z",
-        "last_seen_at": "2026-06-02T21:23:23.975Z",
+        "fingerprint": "ordinary|поправил форму. что изменилось в [app.tsx](/users/dmitriy.vrnn/homeprojects/ai-less/apps/frontend/src/app.tsx:134): - убрал верхнюю линию над формой. - перенёс визуальные стили на ai elements `inputgroup`, а не на `textarea`. - убрал двойную рамку/двойной фон. - сделал поле шире (`max-w-5xl`) и ровнее по высоте. - кнопка submit теперь аккуратно сидит внутри справа, без отдельного текстового `send`. проверка: `pnpm --filter @ai-less/frontend build` проходит. предупреждения про bundle size остались из-за streamdown/ai elements plugins.",
+        "first_seen_at": "2026-06-02T21:38:57.294Z",
+        "last_seen_at": "2026-06-02T21:38:57.294Z",
         "repeat_count": 1,
-        "last_turn_id": "019e8a37-ef9a-7ef3-b1f2-845cdebe4f58",
+        "last_turn_id": "019e8a45-b3d0-79e1-a5df-9da90d07208c",
+        "last_thread_id": null
+      }
+    },
+    "019e8a48-6c60-70d1-8513-5195d55c6b8c": {
+      "ordinary_no_progress_guard": {
+        "fingerprint": "ordinary|{\"title\":\"добавь shimmer для ai elements\"}",
+        "first_seen_at": "2026-06-02T21:41:06.410Z",
+        "last_seen_at": "2026-06-02T21:41:06.410Z",
+        "repeat_count": 1,
+        "last_turn_id": "019e8a48-6c92-7a01-afd7-47c5aaa95ce3",
+        "last_thread_id": null
+      }
+    },
+    "019e8a48-0dc7-7192-972c-3ad244ab9d43": {
+      "ordinary_no_progress_guard": {
+        "fingerprint": "ordinary|убрал лишнюю рамку и дублирование текста. теперь loading-состояние: - не рисует внешнюю карточку вокруг shimmer; - не показывает сверху отдельную строку `генерирую изображение: ...`; - оставляет один чистый квадратный shimmer-превью и короткий prompt под ним. проверка: `pnpm --filter @ai-less/frontend build` проходит.",
+        "first_seen_at": "2026-06-02T21:45:45.653Z",
+        "last_seen_at": "2026-06-02T21:45:45.653Z",
+        "repeat_count": 1,
+        "last_turn_id": "019e8a4c-0c2c-7910-801c-a596a4918591",
         "last_thread_id": null
       }
     }
