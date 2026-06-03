@@ -15,6 +15,14 @@ export interface RagIndexResult {
   chunks: number;
 }
 
+export interface RagUploadResult extends RagIndexResult {
+  uploaded: {
+    fileName: string;
+    source: string;
+    size: number;
+  };
+}
+
 type RagStreamEvent =
   | {
       type: 'retrieval';
@@ -45,7 +53,9 @@ export class RagStore {
   chunks: RagChunk[] = [];
   isAsking = false;
   isIndexing = false;
+  isUploading = false;
   indexResult: RagIndexResult | null = null;
+  uploadResult: RagUploadResult | null = null;
   error: string | null = null;
   askedQuestion = '';
 
@@ -58,7 +68,7 @@ export class RagStore {
   }
 
   async index() {
-    if (this.isIndexing || this.isAsking) {
+    if (this.isBusy) {
       return;
     }
 
@@ -79,6 +89,7 @@ export class RagStore {
 
       runInAction(() => {
         this.indexResult = result;
+        this.uploadResult = null;
       });
     } catch (error) {
       runInAction(() => {
@@ -87,6 +98,46 @@ export class RagStore {
     } finally {
       runInAction(() => {
         this.isIndexing = false;
+      });
+    }
+  }
+
+  async uploadFile(file: File | null) {
+    if (!file || this.isBusy) {
+      return;
+    }
+
+    this.isUploading = true;
+    this.error = null;
+    this.indexResult = null;
+    this.uploadResult = null;
+
+    try {
+      const body = new FormData();
+      body.append('file', file);
+
+      const response = await fetch('/api/rag/upload', {
+        method: 'POST',
+        body,
+      });
+
+      if (!response.ok) {
+        throw new Error(await this.readError(response, `Upload failed: ${response.status}`));
+      }
+
+      const result = (await response.json()) as RagUploadResult;
+
+      runInAction(() => {
+        this.uploadResult = result;
+        this.indexResult = result;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.error = error instanceof Error ? error.message : 'Unknown upload error';
+      });
+    } finally {
+      runInAction(() => {
+        this.isUploading = false;
       });
     }
   }
@@ -146,7 +197,7 @@ export class RagStore {
   }
 
   usePreset(question: string) {
-    if (this.isAsking || this.isIndexing) {
+    if (this.isBusy) {
       return;
     }
 
@@ -154,7 +205,7 @@ export class RagStore {
   }
 
   get isBusy() {
-    return this.isAsking || this.isIndexing;
+    return this.isAsking || this.isIndexing || this.isUploading;
   }
 
   private applyStreamEvent(event: RagStreamEvent) {
@@ -203,4 +254,3 @@ export class RagStore {
     return this.chunks.reduce((best, chunk) => Math.max(best, chunk.score), 0);
   }
 }
-

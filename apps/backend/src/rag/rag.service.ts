@@ -1,10 +1,24 @@
 import { HttpException, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { RecursiveChunker } from 'chonkie';
 import { randomUUID } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
-import { RagAskRequest, RagAskResponse, RagChunk, RagIndexResponse, RagStreamEvent } from './rag.types';
+import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, extname, resolve } from 'node:path';
+import {
+  RagAskRequest,
+  RagAskResponse,
+  RagChunk,
+  RagIndexResponse,
+  RagStreamEvent,
+  RagUploadResponse,
+} from './rag.types';
 import { OpenAiClientProvider } from '../common/openai/openai-client.provider';
+
+export interface UploadedTextFile {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer?: Buffer;
+}
 
 interface SourceDocument {
   text: string;
@@ -33,6 +47,7 @@ const VECTOR_SIZE = 1536;
 const DEFAULT_CHUNK_SIZE = 512;
 const DEFAULT_SCORE_THRESHOLD = 0.35;
 const FALLBACK_ANSWER = 'Информация не найдена в базе знаний.';
+const ALLOWED_UPLOAD_EXTENSIONS = new Set(['.txt', '.md', '.markdown']);
 
 @Injectable()
 export class RagService implements OnModuleInit {
@@ -169,6 +184,35 @@ export class RagService implements OnModuleInit {
     };
   }
 
+  async uploadDocument(file: UploadedTextFile | undefined): Promise<RagUploadResponse> {
+    const upload = this.validateUpload(file);
+    const fileName = await this.getAvailableFileName(upload.originalname);
+    const text = upload.buffer.toString('utf8').trim();
+
+    if (!text) {
+      throw new HttpException(
+        {
+          message: 'Uploaded file is empty.',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await mkdir(this.docsDir, { recursive: true });
+    await writeFile(resolve(this.docsDir, fileName), text, 'utf8');
+
+    const index = await this.indexDocuments();
+
+    return {
+      ...index,
+      uploaded: {
+        fileName,
+        source: `rag-docs/${fileName}`,
+        size: upload.size,
+      },
+    };
+  }
+
   private async chunkText(text: string): Promise<string[]> {
     const normalized = text.replace(/\r\n/g, '\n').trim();
 
@@ -204,6 +248,8 @@ export class RagService implements OnModuleInit {
         },
       },
     );
+
+    console.log(response.result.map(s => s.score));
 
     return response.result
       .filter((point) => point.score >= threshold)
@@ -316,6 +362,59 @@ export class RagService implements OnModuleInit {
         };
       }),
     );
+  }
+
+  private validateUpload(file: UploadedTextFile | undefined): UploadedTextFile & { buffer: Buffer } {
+    if (!file?.buffer) {
+      throw new HttpException(
+        {
+          message: 'Text file is required.',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const extension = extname(file.originalname).toLowerCase();
+
+    if (!ALLOWED_UPLOAD_EXTENSIONS.has(extension)) {
+      throw new HttpException(
+        {
+          message: 'Only .txt, .md, and .markdown files are supported.',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return file as UploadedTextFile & { buffer: Buffer };
+  }
+
+  private async getAvailableFileName(originalName: string) {
+    const extension = extname(originalName).toLowerCase();
+    const rawStem = basename(originalName, extname(originalName));
+    const stem = rawStem
+      .normalize('NFKD')
+      .replace(/[^\p{L}\p{N}._-]+/gu, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80);
+    const safeStem = stem || 'document';
+    let candidate = `${safeStem}${extension}`;
+    let suffix = 2;
+
+    while (await this.fileExists(resolve(this.docsDir, candidate))) {
+      candidate = `${safeStem}-${suffix}${extension}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
+
+  private async fileExists(path: string) {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private parseFrontMatter(raw: string) {

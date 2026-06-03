@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { ArrowLeft, ChevronDown, Database, FileSearch, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Database, FileSearch, Loader2, Search, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MessageResponse } from '@/components/ai-elements/message';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { type RagChunk, RagStore } from './rag-store';
 
 const PRESET_QUESTIONS = [
-  'Где появились два гражданина?',
   'Что сказано в договоре?',
   'Как подключиться к VPN?',
 ];
@@ -32,7 +31,7 @@ export const RagPage = observer(() => {
 });
 
 const RagHeader = observer(({ store }: { store: RagStore }) => (
-  <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
+  <header className="flex flex-col gap-4 border-b border-white/10 pb-5 xl:flex-row xl:items-end xl:justify-between">
     <div className="min-w-0">
       <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-zinc-400 hover:text-zinc-100">
         <Link to="/" viewTransition>
@@ -51,18 +50,68 @@ const RagHeader = observer(({ store }: { store: RagStore }) => (
         </p>
       ) : null}
     </div>
-    <Button
-      type="button"
-      variant="outline"
-      className="w-full shrink-0 border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.07] hover:text-zinc-50 md:w-auto"
-      disabled={store.isBusy}
-      onClick={() => void store.index()}
-    >
-      {store.isIndexing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Database aria-hidden="true" />}
-      {store.isIndexing ? 'Индексирую…' : 'Переиндексировать'}
-    </Button>
+    <div className="grid w-full shrink-0 gap-3 xl:w-auto xl:min-w-96">
+      <DocumentUpload store={store} />
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.07] hover:text-zinc-50 xl:w-auto xl:justify-self-end"
+        disabled={store.isBusy}
+        onClick={() => void store.index()}
+      >
+        {store.isIndexing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Database aria-hidden="true" />}
+        {store.isIndexing ? 'Индексирую…' : 'Переиндексировать'}
+      </Button>
+    </div>
   </header>
 ));
+
+const DocumentUpload = observer(({ store }: { store: RagStore }) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+
+  return (
+    <form
+      className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void store.uploadFile(file).then(() => {
+          if (inputRef.current) {
+            inputRef.current.value = '';
+          }
+          setFile(null);
+        });
+      }}
+    >
+      <label className="text-sm font-medium text-zinc-200" htmlFor="rag-file">
+        Загрузить документ
+      </label>
+      <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <input
+          ref={inputRef}
+          id="rag-file"
+          type="file"
+          accept=".txt,.md,.markdown,text/plain,text/markdown"
+          className="min-w-0 rounded-md border border-white/10 bg-[#18191b] px-3 py-2 text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-zinc-700 file:px-2 file:py-1 file:text-xs file:text-zinc-100 disabled:opacity-70"
+          disabled={store.isBusy}
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        />
+        <Button type="submit" className="w-full xl:w-auto" disabled={!file || store.isBusy}>
+          {store.isUploading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Upload aria-hidden="true" />}
+          {store.isUploading ? 'Загружаю…' : 'Загрузить'}
+        </Button>
+      </div>
+      {store.uploadResult ? (
+        <p className="m-0 text-xs leading-5 text-emerald-300/90">
+          Добавлен {store.uploadResult.uploaded.source}; индекс: {store.uploadResult.documents} док.,{' '}
+          {store.uploadResult.chunks} чанков.
+        </p>
+      ) : (
+        <p className="m-0 text-xs leading-5 text-zinc-500">Поддерживаются .txt, .md и .markdown до 2 МБ.</p>
+      )}
+    </form>
+  );
+});
 
 const RagWorkspace = observer(({ store }: { store: RagStore }) => (
   <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">

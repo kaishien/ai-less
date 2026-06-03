@@ -24,6 +24,14 @@ export interface RagIndexResponse {
   chunks: number;
 }
 
+export interface RagUploadResponse extends RagIndexResponse {
+  uploaded: {
+    fileName: string;
+    source: string;
+    size: number;
+  };
+}
+
 export type RagStreamEvent =
   | {
       type: 'retrieval';
