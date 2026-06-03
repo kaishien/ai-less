@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { ArrowLeft, ChevronDown, FileSearch, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Database, FileSearch, Loader2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MessageResponse } from '@/components/ai-elements/message';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ export const RagPage = observer(() => {
   return (
     <main className="view-transition-page min-h-dvh bg-[#18191b] text-zinc-100">
       <div className="mx-auto grid min-h-dvh w-full max-w-7xl grid-rows-[auto_minmax(0,1fr)] px-4 py-5 md:px-6 md:py-7">
-        <RagHeader />
+        <RagHeader store={store} />
 
         <section className="min-w-0 py-6" aria-label="RAG workspace">
           <RagWorkspace store={store} />
@@ -31,8 +31,8 @@ export const RagPage = observer(() => {
   );
 });
 
-const RagHeader = () => (
-  <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-center md:justify-between">
+const RagHeader = observer(({ store }: { store: RagStore }) => (
+  <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
     <div className="min-w-0">
       <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3 text-zinc-400 hover:text-zinc-100">
         <Link to="/" viewTransition>
@@ -44,9 +44,25 @@ const RagHeader = () => (
       <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
         Поиск по документам: вопрос, найденный контекст и источники.
       </p>
+      {store.indexResult ? (
+        <p className="m-0 mt-2 text-sm leading-6 text-emerald-300/90">
+          Индекс обновлён: {store.indexResult.documents} док., {store.indexResult.chunks} чанков (
+          {store.indexResult.collection})
+        </p>
+      ) : null}
     </div>
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full shrink-0 border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.07] hover:text-zinc-50 md:w-auto"
+      disabled={store.isBusy}
+      onClick={() => void store.index()}
+    >
+      {store.isIndexing ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Database aria-hidden="true" />}
+      {store.isIndexing ? 'Индексирую…' : 'Переиндексировать'}
+    </Button>
   </header>
-);
+));
 
 const RagWorkspace = observer(({ store }: { store: RagStore }) => (
   <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -75,7 +91,7 @@ const QuestionForm = observer(({ store }: { store: RagStore }) => (
       id="rag-question"
       className="mt-3 min-h-32 resize-none border-white/10 bg-[#18191b] text-zinc-100 placeholder:text-zinc-500 disabled:opacity-70"
       placeholder="Например: как подключиться к VPN?"
-      disabled={store.isAsking}
+      disabled={store.isBusy}
       value={store.question}
       onChange={(event) => store.setQuestion(event.target.value)}
       onKeyDown={(event) => {
@@ -85,7 +101,7 @@ const QuestionForm = observer(({ store }: { store: RagStore }) => (
 
         event.preventDefault();
 
-        if (store.question.trim() && !store.isAsking) {
+        if (store.question.trim() && !store.isBusy) {
           void store.ask();
         }
       }}
@@ -98,7 +114,7 @@ const QuestionForm = observer(({ store }: { store: RagStore }) => (
           variant="outline"
           size="xs"
           className="border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.07] hover:text-zinc-50"
-          disabled={store.isAsking}
+          disabled={store.isBusy}
           onClick={() => store.usePreset(question)}
         >
           {question}
@@ -114,7 +130,7 @@ const QuestionForm = observer(({ store }: { store: RagStore }) => (
       <Button
         type="button"
         className="w-full sm:w-auto"
-        disabled={!store.question.trim() || store.isAsking}
+        disabled={!store.question.trim() || store.isBusy}
         onClick={() => void store.ask()}
       >
         {store.isAsking ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Search aria-hidden="true" />}

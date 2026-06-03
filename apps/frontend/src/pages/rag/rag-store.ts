@@ -9,6 +9,12 @@ export interface RagChunk {
   score: number;
 }
 
+export interface RagIndexResult {
+  collection: string;
+  documents: number;
+  chunks: number;
+}
+
 type RagStreamEvent =
   | {
       type: 'retrieval';
@@ -38,6 +44,8 @@ export class RagStore {
   sources: string[] = [];
   chunks: RagChunk[] = [];
   isAsking = false;
+  isIndexing = false;
+  indexResult: RagIndexResult | null = null;
   error: string | null = null;
   askedQuestion = '';
 
@@ -49,10 +57,44 @@ export class RagStore {
     this.question = value;
   }
 
+  async index() {
+    if (this.isIndexing || this.isAsking) {
+      return;
+    }
+
+    this.isIndexing = true;
+    this.error = null;
+    this.indexResult = null;
+
+    try {
+      const response = await fetch('/api/rag/index', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(await this.readError(response, `Indexing failed: ${response.status}`));
+      }
+
+      const result = (await response.json()) as RagIndexResult;
+
+      runInAction(() => {
+        this.indexResult = result;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.error = error instanceof Error ? error.message : 'Unknown indexing error';
+      });
+    } finally {
+      runInAction(() => {
+        this.isIndexing = false;
+      });
+    }
+  }
+
   async ask() {
     const question = this.question.trim();
 
-    if (!question || this.isAsking) {
+    if (!question || this.isAsking || this.isIndexing) {
       return;
     }
 
@@ -104,11 +146,15 @@ export class RagStore {
   }
 
   usePreset(question: string) {
-    if (this.isAsking) {
+    if (this.isAsking || this.isIndexing) {
       return;
     }
 
     this.question = question;
+  }
+
+  get isBusy() {
+    return this.isAsking || this.isIndexing;
   }
 
   private applyStreamEvent(event: RagStreamEvent) {

@@ -30,8 +30,8 @@ interface QdrantSearchPoint {
 
 const VECTOR_SIZE = 1536;
 const DEFAULT_CHUNK_SIZE = 512;
-const DEFAULT_OVERLAP = 50;
-const DEFAULT_SCORE_THRESHOLD = 0.1;
+const DEFAULT_OVERLAP = 500;
+const DEFAULT_SCORE_THRESHOLD = 0.35;
 const FALLBACK_ANSWER = 'Информация не найдена в базе знаний.';
 
 @Injectable()
