@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { RecursiveChunker } from 'chonkie';
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
@@ -30,7 +31,6 @@ interface QdrantSearchPoint {
 
 const VECTOR_SIZE = 1536;
 const DEFAULT_CHUNK_SIZE = 512;
-const DEFAULT_OVERLAP = 500;
 const DEFAULT_SCORE_THRESHOLD = 0.35;
 const FALLBACK_ANSWER = 'Информация не найдена в базе знаний.';
 
@@ -41,6 +41,7 @@ export class RagService implements OnModuleInit {
   private readonly docsDir = resolve(process.env.RAG_DOCS_DIR ?? './data/rag-docs');
   private readonly embeddingModel = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
   private readonly chatModel = process.env.OPENAI_MODEL ?? 'gpt-5.4-mini';
+  private chunker?: Awaited<ReturnType<typeof RecursiveChunker.create>>;
 
   constructor(@Inject(OpenAiClientProvider) private readonly openAiClient: OpenAiClientProvider) {}
 
@@ -123,8 +124,14 @@ export class RagService implements OnModuleInit {
 
   async indexDocuments(): Promise<RagIndexResponse> {
     const documents = await this.loadDocuments();
-    const chunks = documents.flatMap((document) =>
-      this.recursiveSplit(document.text, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP).map((text, chunkId) => ({
+    const chunksByDocument = await Promise.all(
+      documents.map(async (document) => ({
+        document,
+        chunks: await this.chunkText(document.text),
+      })),
+    );
+    const chunks = chunksByDocument.flatMap(({ document, chunks: documentChunks }) =>
+      documentChunks.map((text, chunkId) => ({
         text,
         source: document.source,
         date: document.date,
@@ -162,114 +169,26 @@ export class RagService implements OnModuleInit {
     };
   }
 
-  recursiveSplit(text: string, chunkSize = DEFAULT_CHUNK_SIZE, overlap = DEFAULT_OVERLAP): string[] {
+  private async chunkText(text: string): Promise<string[]> {
     const normalized = text.replace(/\r\n/g, '\n').trim();
-    const units = this.splitLargeUnits(
-      normalized
-        .split(/\n{2,}/)
-        .map((part) => part.trim())
-        .filter(Boolean),
-      chunkSize,
-    );
-    const chunks: string[] = [];
-    let current = '';
 
-    for (const unit of units) {
-      const candidate = current ? `${current}\n\n${unit}` : unit;
-
-      if (candidate.length <= chunkSize) {
-        current = candidate;
-        continue;
-      }
-
-      if (current) {
-        chunks.push(current);
-      }
-
-      current = unit;
+    if (!normalized) {
+      return [];
     }
 
-    if (current) {
-      chunks.push(current);
-    }
+    const chunks = await (await this.getChunker()).chunk(normalized);
 
-    if (overlap <= 0 || chunks.length <= 1) {
-      return chunks;
-    }
+    return chunks.map((chunk) => chunk.text.trim()).filter(Boolean);
+  }
 
-    return chunks.map((chunk, index) => {
-      if (index === 0) {
-        return chunk;
-      }
-
-      const prefix = this.overlapPrefix(chunks[index - 1], overlap);
-      return prefix ? `${prefix}\n\n${chunk}` : chunk;
+  private async getChunker() {
+    this.chunker ??= await RecursiveChunker.create({
+      chunkSize: DEFAULT_CHUNK_SIZE,
+      tokenizer: 'word',
+      minCharactersPerChunk: 80,
     });
-  }
 
-  private overlapPrefix(text: string, overlap: number) {
-    const suffix = text.slice(-overlap).trim();
-    const boundary = suffix.search(/\s/);
-
-    if (boundary <= 0) {
-      return suffix;
-    }
-
-    return suffix.slice(boundary).trim();
-  }
-
-  private splitLargeUnits(units: string[], chunkSize: number) {
-    return units.flatMap((unit) => {
-      if (unit.length <= chunkSize) {
-        return [unit];
-      }
-
-      const lines = unit
-        .split(/\n+/)
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-      if (lines.every((line) => line.length <= chunkSize)) {
-        return lines;
-      }
-
-      return lines.flatMap((line) => this.splitSentences(line, chunkSize));
-    });
-  }
-
-  private splitSentences(text: string, chunkSize: number) {
-    const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((part) => part.trim()).filter(Boolean) ?? [text];
-    const chunks: string[] = [];
-    let current = '';
-
-    for (const sentence of sentences) {
-      const candidate = current ? `${current} ${sentence}` : sentence;
-
-      if (candidate.length <= chunkSize) {
-        current = candidate;
-        continue;
-      }
-
-      if (current) {
-        chunks.push(current);
-      }
-
-      if (sentence.length <= chunkSize) {
-        current = sentence;
-        continue;
-      }
-
-      for (let index = 0; index < sentence.length; index += chunkSize) {
-        chunks.push(sentence.slice(index, index + chunkSize));
-      }
-      current = '';
-    }
-
-    if (current) {
-      chunks.push(current);
-    }
-
-    return chunks;
+    return this.chunker;
   }
 
   private async search(query: string, k: number, threshold: number): Promise<RagChunk[]> {
