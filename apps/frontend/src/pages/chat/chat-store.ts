@@ -1,4 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import { readNdjsonStream } from '@/lib/read-ndjson-stream';
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -167,7 +168,7 @@ export class ChatStore {
         throw new Error(message);
       }
 
-      await this.readStream(response, assistantMessage);
+      await readNdjsonStream<ChatStreamEvent>(response, (event) => this.applyStreamEvent(event, assistantMessage));
     } catch (error) {
       runInAction(() => {
         this.error = this.isAbortError(error) ? null : error instanceof Error ? error.message : 'Unknown chat error';
@@ -180,39 +181,6 @@ export class ChatStore {
           this.abortController = null;
         }
       });
-    }
-  }
-
-  private async readStream(response: Response, assistantMessage: ChatMessage) {
-    if (!response.body) {
-      throw new Error('Chat stream is not readable.');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    for (;;) {
-      const { done, value } = await reader.read();
-      buffer += decoder.decode(value, { stream: !done });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (!line.trim()) {
-          continue;
-        }
-
-        this.applyStreamEvent(JSON.parse(line) as ChatStreamEvent, assistantMessage);
-      }
-
-      if (done) {
-        break;
-      }
-    }
-
-    if (buffer.trim()) {
-      this.applyStreamEvent(JSON.parse(buffer) as ChatStreamEvent, assistantMessage);
     }
   }
 

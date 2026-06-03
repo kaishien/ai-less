@@ -1,13 +1,14 @@
-import OpenAI from 'openai';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { SYSTEM_PROMPT } from './assistant-profile';
 import { TOOL_GUIDANCE } from './chat-tools';
 import { ChatMessage, LlmChatResult, LlmClient, LlmStreamChunk, LlmStreamOptions } from './chat.types';
+import { OpenAiClientProvider } from '../common/openai/openai-client.provider';
 
 @Injectable()
 export class OpenAiLlmClient implements LlmClient {
-  private client: OpenAI | null = null;
   private readonly model = process.env.OPENAI_MODEL ?? 'gpt-5.4-mini';
+
+  constructor(@Inject(OpenAiClientProvider) private readonly openAiClient: OpenAiClientProvider) {}
 
   async complete(messages: ChatMessage[]): Promise<LlmChatResult> {
     const completion = await this.getClient().chat.completions.create({
@@ -96,24 +97,7 @@ export class OpenAiLlmClient implements LlmClient {
   }
 
   private getClient() {
-    if (this.client) {
-      return this.client;
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      throw new HttpException(
-        {
-          message: 'OPENAI_API_KEY is required to call /api/chat.',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    return this.client;
+    return this.openAiClient.getClient();
   }
 
   private toOpenAiMessages(messages: ChatMessage[], extraSystemPrompt?: string) {

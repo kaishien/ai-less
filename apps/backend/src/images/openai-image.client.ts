@@ -1,11 +1,12 @@
-import OpenAI from 'openai';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ImageClient, ImageRequest, ImageResponse } from './images.types';
+import { OpenAiClientProvider } from '../common/openai/openai-client.provider';
 
 @Injectable()
 export class OpenAiImageClient implements ImageClient {
-  private client: OpenAI | null = null;
   private readonly model = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-1';
+
+  constructor(@Inject(OpenAiClientProvider) private readonly openAiClient: OpenAiClientProvider) {}
 
   async generate(request: Required<ImageRequest>): Promise<ImageResponse> {
     const result = await this.getClient().images.generate({
@@ -46,23 +47,6 @@ export class OpenAiImageClient implements ImageClient {
   }
 
   private getClient() {
-    if (this.client) {
-      return this.client;
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      throw new HttpException(
-        {
-          message: 'OPENAI_API_KEY is required to call /api/images.',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    return this.client;
+    return this.openAiClient.getClient();
   }
 }

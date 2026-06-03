@@ -1,6 +1,7 @@
 import { Body, Controller, Inject, Post, Res } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatRequest, ChatResponse } from './chat.types';
+import { writeNdjsonResponse } from '../common/streaming/ndjson-response';
 
 @Controller()
 export class ChatController {
@@ -13,19 +14,6 @@ export class ChatController {
 
   @Post('chat/stream')
   async streamChat(@Body() body: ChatRequest, @Res() response: any) {
-    response.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
-    response.setHeader('Cache-Control', 'no-cache');
-    response.setHeader('Connection', 'keep-alive');
-
-    try {
-      for await (const event of this.chatService.streamChat(body)) {
-        response.write(`${JSON.stringify(event)}\n`);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown stream error';
-      response.write(`${JSON.stringify({ type: 'error', message })}\n`);
-    } finally {
-      response.end();
-    }
+    await writeNdjsonResponse(response, this.chatService.streamChat(body));
   }
 }

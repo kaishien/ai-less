@@ -1,7 +1,7 @@
-import OpenAI from 'openai';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ASSISTANT_ROLE_DESCRIPTION } from '../../chat/assistant-profile';
 import { ChatMessage, GuardClient, GuardDecision } from '../../chat/chat.types';
+import { OpenAiClientProvider } from '../openai/openai-client.provider';
 
 const GUARD_SYSTEM_PROMPT = [
   'Ты — классификатор безопасности для технического ассистента. Профиль ассистента:',
@@ -23,8 +23,9 @@ const VALID_DECISIONS: ReadonlySet<GuardDecision> = new Set<GuardDecision>([
 
 @Injectable()
 export class OpenAiGuardClient implements GuardClient {
-  private client: OpenAI | null = null;
   private readonly model = process.env.OPENAI_GUARD_MODEL ?? process.env.OPENAI_MODEL ?? 'gpt-5.4-mini';
+
+  constructor(@Inject(OpenAiClientProvider) private readonly openAiClient: OpenAiClientProvider) {}
 
   async classify(messages: ChatMessage[]): Promise<GuardDecision> {
     const transcript = messages
@@ -64,23 +65,6 @@ export class OpenAiGuardClient implements GuardClient {
   }
 
   private getClient() {
-    if (this.client) {
-      return this.client;
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      throw new HttpException(
-        {
-          message: 'OPENAI_API_KEY is required to call /api/chat.',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    return this.client;
+    return this.openAiClient.getClient();
   }
 }
