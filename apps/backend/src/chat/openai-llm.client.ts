@@ -10,6 +10,7 @@ export class OpenAiLlmClient implements LlmClient {
 
   constructor(@Inject(OpenAiClientProvider) private readonly openAiClient: OpenAiClientProvider) {}
 
+
   async complete(messages: ChatMessage[]): Promise<LlmChatResult> {
     const completion = await this.getClient().chat.completions.create({
       model: this.model,
@@ -26,6 +27,7 @@ export class OpenAiLlmClient implements LlmClient {
     };
   }
 
+  //TODO: мне не нравится эта функция, надо переписать
   async stream(messages: ChatMessage[], options?: LlmStreamOptions): Promise<AsyncIterable<LlmStreamChunk>> {
     const tools = options?.tools?.map((tool) => ({
       type: 'function' as const,
