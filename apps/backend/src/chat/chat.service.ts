@@ -219,7 +219,6 @@ export class ChatService {
     }
   }
 
-  //FIXME: fix this method
   private async streamWithRetry(messages: ChatMessage[], options?: LlmStreamOptions) {
     let attempt = 0;
 
@@ -287,7 +286,6 @@ export class ChatService {
     return status === 429 || code === 'rate_limit_exceeded';
   }
 
-  //TODO: move to common service
   private sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -300,7 +298,6 @@ export class ChatService {
     };
   }
 
-  //TODO: move to common service
   private createGuardedResponse(content: string, reason = 'guarded'): ChatResponse {
     const budget = this.tokenBudget.snapshot();
     console.log(`[chat] guarded reason=${reason} prompt_tokens=0 completion_tokens=0 total_tokens=0`);

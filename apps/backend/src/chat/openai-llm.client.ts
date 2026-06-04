@@ -27,7 +27,6 @@ export class OpenAiLlmClient implements LlmClient {
     };
   }
 
-  //TODO: мне не нравится эта функция, надо переписать
   async stream(messages: ChatMessage[], options?: LlmStreamOptions): Promise<AsyncIterable<LlmStreamChunk>> {
     const tools = options?.tools?.map((tool) => ({
       type: 'function' as const,
