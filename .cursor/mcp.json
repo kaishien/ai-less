@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ai-less-mcp": {
+      "command": "bun",
+      "args": [
+        "/apps/mcp/src/index.ts"
+      ]
+    }
+  }
+}

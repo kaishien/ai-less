@@ -9,8 +9,10 @@
     "dev": "pnpm -r --parallel dev",
     "dev:backend": "pnpm --filter @ai-less/backend start:dev",
     "dev:frontend": "pnpm --filter @ai-less/frontend dev",
+    "dev:mcp": "bun apps/mcp/src/index.ts",
     "build": "pnpm -r build",
     "start:backend": "pnpm --filter @ai-less/backend start:prod",
+    "inspect:mcp": "bun run --cwd apps/mcp inspect",
     "lint": "pnpm -r --if-present lint"
   },
   "packageManager": "pnpm@10.15.0"
