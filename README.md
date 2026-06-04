@@ -42,29 +42,29 @@ All user input goes through a single endpoint: `/api/chat/stream`. On the backen
 
 ```mermaid
 flowchart TD
-    U[User enters a message] --> FE[chatStore.sendMessage]
-    FE -->|creates an empty assistant bubble<br/>"Typing..."| FE2[POST /api/chat/stream<br/>full conversation history]
-    FE2 --> CTRL[ChatController.streamChat<br/>NDJSON response]
-    CTRL --> SVC[ChatService.streamChat]
+    U["User enters a message"] --> FE["chatStore.sendMessage"]
+    FE -->|"creates empty assistant bubble"| FE2["POST /api/chat/stream<br/>full conversation history"]
+    FE2 --> CTRL["ChatController.streamChat<br/>NDJSON response"]
+    CTRL --> SVC["ChatService.streamChat"]
 
-    SVC --> NORM[normalizeMessages<br/>keep user/assistant, trim]
-    NORM --> GUARD{InputGuard.inspect}
-    GUARD -->|LLM classifier| GC[OpenAiGuardClient<br/>allow / prompt_injection / out_of_scope]
-    GC -.->|classifier error| FAILOPEN[fail-open -> allow]
+    SVC --> NORM["normalizeMessages<br/>keep user/assistant and trim"]
+    NORM --> GUARD{"InputGuard.inspect"}
+    GUARD -->|"LLM classifier"| GC["OpenAiGuardClient<br/>allow / prompt_injection / out_of_scope"]
+    GC -.->|"classifier error"| FAILOPEN["fail-open allow"]
 
-    GUARD -->|blocked| REFUSE[Stream polite refusal<br/>0 tokens]
-    GUARD -->|allow| BUDGET{TokenBudget.canSpend?}
-    BUDGET -->|no| E429[HTTP 429<br/>budget exhausted]
-    BUDGET -->|yes| LLM[OpenAiLlmClient.stream<br/>+ generate_image tool<br/>retry on 429]
+    GUARD -->|"blocked"| REFUSE["Stream polite refusal<br/>0 tokens"]
+    GUARD -->|"allow"| BUDGET{"TokenBudget.canSpend?"}
+    BUDGET -->|"no"| E429["HTTP 429<br/>budget exhausted"]
+    BUDGET -->|"yes"| LLM["OpenAiLlmClient.stream<br/>generate_image tool<br/>retry on 429"]
 
-    LLM --> DEC{What did the model return?}
-    DEC -->|text deltas| TEXT[Stream delta -> done]
-    DEC -->|tool_call generate_image| IMG[runImageTool]
+    LLM --> DEC{"What did the model return?"}
+    DEC -->|"text deltas"| TEXT["Stream delta to done"]
+    DEC -->|"tool_call generate_image"| IMG["runImageTool"]
 
-    IMG --> P[image_pending event<br/>-> frontend shows loader]
-    P --> ISVC[ImagesService.generate<br/>prompt_injection check]
-    ISVC --> OIMG[OpenAiImageClient<br/>images.generate gpt-image-1]
-    OIMG --> IEV[image event<br/>-> frontend renders image]
+    IMG --> P["image_pending event<br/>frontend shows loader"]
+    P --> ISVC["ImagesService.generate<br/>prompt_injection check"]
+    ISVC --> OIMG["OpenAiImageClient<br/>images.generate gpt-image-1"]
+    OIMG --> IEV["image event<br/>frontend renders image"]
     IEV --> DONE2[done event]
 
     TEXT --> SPEND[TokenBudget.spend]
@@ -153,4 +153,3 @@ sequenceDiagram
 pnpm --filter @ai-less/backend build
 pnpm --filter @ai-less/frontend build
 ```
-
