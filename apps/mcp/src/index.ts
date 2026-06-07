@@ -4,6 +4,7 @@ import "./lib/env.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerObsidianTools } from "./tools/obsidian-tools.js";
+import { registerJiraTools } from "./tools/jira-tools.js";
 import { registerRepoTools } from "./tools/repo-tools.js";
 import { registerTextTools } from "./tools/text-tools.js";
 import { registerTimeTools } from "./tools/time-tools.js";
@@ -17,6 +18,7 @@ registerTextTools(server);
 registerTimeTools(server);
 registerObsidianTools(server);
 registerRepoTools(server);
+registerJiraTools(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
