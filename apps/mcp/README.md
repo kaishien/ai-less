@@ -14,6 +14,9 @@ Minimal MCP server for the training monorepo. It runs on Bun over stdio and does
 - `repo_collect_todos_to_obsidian` - scans code for `TODO`, `FIXME`, `HACK`, and `NOTE` comments, detects nearby functions/classes, and writes a markdown report into Obsidian.
 - `mock_jira_get_task` - reads a task from the local mock Jira backend and returns its steps plus an implementation brief for Cursor.
 - `mock_jira_search_issues` - searches the local Jira-like mock API and returns matching issue summaries.
+- `figma_get_node_tree` - fetches a Figma node URL and returns a CSS-oriented tree for the selected node and descendants.
+- `figma_compare_responsive_nodes` - compares mobile and desktop Figma nodes and returns changed CSS-oriented values.
+- `figma_extract_auto_clamp_tokens` - returns mobile/desktop value pairs as `auto-clamp(...)` CSS suggestions for applying in code.
 
 The Obsidian tools use this vault by default:
 
@@ -30,6 +33,38 @@ OBSIDIAN_VAULT_PATH="/path/to/vault" bun src/index.ts
 Note paths are always relative to the vault, and `../` path traversal is rejected.
 
 On macOS, the MCP client process may need privacy permissions for iCloud Drive/Documents access. If a vault tool returns `Operation not permitted`, grant filesystem access to the app or terminal that launches the MCP server.
+
+## Figma responsive values
+
+Create a Figma personal access token and expose it as `FIGMA_TOKEN`:
+
+```bash
+FIGMA_TOKEN="figd_..." bun src/index.ts
+```
+
+`FIGMA_ACCESS_TOKEN` is also accepted as a fallback. The Figma tools expect links copied from selected nodes, for example:
+
+```text
+https://www.figma.com/design/<fileKey>/<title>?node-id=2564-4411&m=dev
+```
+
+Ask an MCP client to extract `auto-clamp` tokens from mobile and desktop selections:
+
+```json
+{
+  "mobileUrl": "https://www.figma.com/design/<fileKey>/<title>?node-id=100-200&m=dev",
+  "desktopUrl": "https://www.figma.com/design/<fileKey>/<title>?node-id=300-400&m=dev"
+}
+```
+
+The response includes matched descendants and CSS suggestions such as:
+
+```css
+padding-top: auto-clamp(24, 64);
+font-size: auto-clamp(28, 48);
+```
+
+Matching uses normalized layer paths first and child index paths as a fallback. Keep mobile and desktop layer names aligned for the most reliable output.
 
 ## TODO report
 
