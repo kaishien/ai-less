@@ -2,12 +2,40 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { readNdjsonStream } from '@/lib/read-ndjson-stream';
 
 export interface RagChunk {
+  docId?: string;
   text: string;
   source: string;
   date: string;
   chunkId: number;
   score: number;
+  denseScore?: number;
+  bm25Score?: number;
+  sparseScore?: number;
+  rrfScore?: number;
+  rerankScore?: number;
+  retrieval?: string[];
 }
+
+export interface RagTraceStep {
+  title: string;
+  description: string;
+  durationMs?: number;
+  query?: string;
+  model?: string;
+  output?: string | string[];
+  chunks?: Array<{
+    rank: number;
+    source: string;
+    chunkId: number;
+    docId?: string;
+    score: number;
+    why: string[];
+    text: string;
+  }>;
+}
+
+export type RagSearchMode = 'bm25' | 'sparse' | 'dense' | 'hybrid' | 'hyde' | 'multiQuery' | 'advanced';
+export type RagEvaluationDataset = 'small' | 'full';
 
 export interface RagIndexResult {
   collection: string;
@@ -23,11 +51,21 @@ export interface RagUploadResult extends RagIndexResult {
   };
 }
 
+export interface RagEvaluationResult {
+  k: number;
+  dataset: RagEvaluationDataset;
+  resultsPath: string;
+  metrics: Record<string, { hitRate: number; mrr: number; precisionAtK: number }>;
+  markdown: string;
+}
+
 type RagStreamEvent =
   | {
       type: 'retrieval';
+      mode: RagSearchMode;
       sources: string[];
       chunks: RagChunk[];
+      trace: RagTraceStep[];
     }
   | {
       type: 'delta';
@@ -36,8 +74,10 @@ type RagStreamEvent =
   | {
       type: 'done';
       answer: string;
+      mode: RagSearchMode;
       sources: string[];
       chunks: RagChunk[];
+      trace: RagTraceStep[];
     }
   | {
       type: 'error';
@@ -51,11 +91,16 @@ export class RagStore {
   answer = '';
   sources: string[] = [];
   chunks: RagChunk[] = [];
+  trace: RagTraceStep[] = [];
   isAsking = false;
   isIndexing = false;
   isUploading = false;
+  isEvaluating = false;
+  searchMode: RagSearchMode = 'hybrid';
+  evaluationDataset: RagEvaluationDataset = 'small';
   indexResult: RagIndexResult | null = null;
   uploadResult: RagUploadResult | null = null;
+  evaluationResult: RagEvaluationResult | null = null;
   error: string | null = null;
   askedQuestion = '';
 
@@ -65,6 +110,22 @@ export class RagStore {
 
   setQuestion(value: string) {
     this.question = value;
+  }
+
+  setSearchMode(value: RagSearchMode) {
+    if (this.isBusy) {
+      return;
+    }
+
+    this.searchMode = value;
+  }
+
+  setEvaluationDataset(value: RagEvaluationDataset) {
+    if (this.isBusy) {
+      return;
+    }
+
+    this.evaluationDataset = value;
   }
 
   async index() {
@@ -156,6 +217,7 @@ export class RagStore {
     this.answer = '';
     this.sources = [];
     this.chunks = [];
+    this.trace = [];
     this.askedQuestion = question;
 
     try {
@@ -165,7 +227,7 @@ export class RagStore {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, mode: this.searchMode }),
       });
 
       if (!response.ok) {
@@ -183,6 +245,44 @@ export class RagStore {
         if (this.abortController === abortController) {
           this.abortController = null;
         }
+      });
+    }
+  }
+
+  async evaluate() {
+    if (this.isBusy) {
+      return;
+    }
+
+    this.isEvaluating = true;
+    this.error = null;
+    this.evaluationResult = null;
+
+    try {
+      const response = await fetch('/api/rag/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dataset: this.evaluationDataset, k: 5 }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await this.readError(response, `Evaluation failed: ${response.status}`));
+      }
+
+      const result = (await response.json()) as RagEvaluationResult;
+
+      runInAction(() => {
+        this.evaluationResult = result;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.error = error instanceof Error ? error.message : 'Unknown evaluation error';
+      });
+    } finally {
+      runInAction(() => {
+        this.isEvaluating = false;
       });
     }
   }
@@ -205,7 +305,7 @@ export class RagStore {
   }
 
   get isBusy() {
-    return this.isAsking || this.isIndexing || this.isUploading;
+    return this.isAsking || this.isIndexing || this.isUploading || this.isEvaluating;
   }
 
   private applyStreamEvent(event: RagStreamEvent) {
@@ -213,6 +313,7 @@ export class RagStore {
       runInAction(() => {
         this.sources = event.sources;
         this.chunks = event.chunks;
+        this.trace = event.trace;
       });
       return;
     }
@@ -229,6 +330,7 @@ export class RagStore {
         this.answer = event.answer;
         this.sources = event.sources;
         this.chunks = event.chunks;
+        this.trace = event.trace;
       });
       return;
     }

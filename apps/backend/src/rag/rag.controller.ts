@@ -1,7 +1,15 @@
 import { Body, Controller, Inject, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RagService, UploadedTextFile } from './rag.service';
-import { RagAskRequest, RagAskResponse, RagIndexResponse, RagUploadResponse } from './rag.types';
+import {
+  RagAskRequest,
+  RagAskResponse,
+  RagEvaluationRequest,
+  RagEvaluationResponse,
+  RagIndexResponse,
+  RagSearchResponse,
+  RagUploadResponse,
+} from './rag.types';
 import { writeNdjsonResponse } from '../common/streaming/ndjson-response';
 
 @Controller('rag')
@@ -11,6 +19,16 @@ export class RagController {
   @Post('ask')
   ask(@Body() body: RagAskRequest): Promise<RagAskResponse> {
     return this.ragService.ask(body);
+  }
+
+  @Post('search')
+  search(@Body() body: RagAskRequest): Promise<RagSearchResponse> {
+    return this.ragService.searchOnly(body);
+  }
+
+  @Post('evaluate')
+  evaluate(@Body() body: RagEvaluationRequest = {}): Promise<RagEvaluationResponse> {
+    return this.ragService.evaluate(body);
   }
 
   @Post('ask/stream')
