@@ -1,0 +1,5 @@
+tables:
+  users(id, created_at, platform, acquisition_channel, region, plan)
+  sessions(user_id, started_at)
+  subscriptions(user_id, plan, mrr, started_at, cancelled_at)
+  payments(user_id, amount, currency, paid_at, status)

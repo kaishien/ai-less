@@ -1,0 +1,14 @@
+ALERT: Checkout API 5xx spike
+
+Service: checkout-api
+Environment: production
+Started: 09:42 UTC
+
+Symptoms:
+- 5xx rate increased from 0.2% to 7.8%.
+- p95 latency increased from 420ms to 3.2s.
+- Error logs show database connection timeouts.
+- Recent deploy changed retry settings in payment confirmation.
+
+Customer impact:
+Some users cannot complete orders.

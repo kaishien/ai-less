@@ -1,0 +1,15 @@
+PR: Refactor auth token verification
+
+Summary:
+- Rewrites token verification in apps/backend/src/auth/token.service.ts.
+- Removes the old audience check because mobile clients failed in staging.
+- Does not add or update tests.
+- Touches login middleware and refresh token validation.
+
+Diff notes:
+- apps/backend/src/auth/token.service.ts
+- apps/backend/src/auth/auth.middleware.ts
+- apps/backend/src/users/session.service.ts
+
+Risk:
+Production authentication flow changes without coverage. The PR author says manual QA is enough.

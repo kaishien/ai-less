@@ -1,0 +1,15 @@
+PR: Add optional displayName to user profile response
+
+Summary:
+- Adds displayName to GET /api/profile response.
+- Keeps existing name and email fields unchanged.
+- Adds unit tests for profile serializer.
+- Updates API docs with the optional field.
+
+Diff notes:
+- apps/backend/src/profile/profile.serializer.ts
+- apps/backend/src/profile/profile.serializer.spec.ts
+- docs/api-profile.md
+
+Risk:
+No auth, billing, migration, or permission logic changed.

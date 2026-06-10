@@ -1,0 +1,8 @@
+Cached metrics snapshot:
+- D7 retention overall: 21%
+- D7 retention Android: 18%
+- D7 retention iOS: 27%
+- Paid search D7 retention: 17%
+- Organic D7 retention: 29%
+- Enterprise MRR month-over-month: +14%
+- Enterprise annual plan share: +9 percentage points

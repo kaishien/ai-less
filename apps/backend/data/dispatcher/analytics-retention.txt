@@ -1,0 +1,9 @@
+Analytical question:
+
+Why did D7 retention drop for users acquired last week?
+
+Context:
+- Overall D7 retention changed from 28% to 21%.
+- Marketing launched two new acquisition channels.
+- Android app received a new onboarding flow.
+- We need a short analysis plan with the most important metric cuts.

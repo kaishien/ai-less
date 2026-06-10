@@ -1,0 +1,9 @@
+Analytical question:
+
+What explains the revenue increase in the enterprise segment this month?
+
+Context:
+- MRR increased by 14%.
+- Sales ran a discount campaign for annual plans.
+- Expansion revenue may have changed differently across regions.
+- We need the smallest useful set of metric checks.

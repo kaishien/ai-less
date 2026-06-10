@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, DatabaseZap, GitCommitHorizontal, MessageSquareText, Route } from 'lucide-react';
+import { ArrowRight, Bot, DatabaseZap, GitCommitHorizontal, MessageSquareText, Route, Workflow } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +26,14 @@ const sections = [
     icon: GitCommitHorizontal,
     status: 'Практика',
     meta: ['LCEL', 'Tools', 'Structured output'],
+  },
+  {
+    title: 'Dispatcher',
+    description: 'LangGraph workflow для routing, parallel code review и analytics orchestration.',
+    href: '/dispatcher',
+    icon: Workflow,
+    status: 'Неделя 2',
+    meta: ['LangGraph', 'Fan-out', 'Reducers'],
   },
 ];
 

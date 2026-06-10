@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createAgent } from 'langchain';
 import * as z from 'zod';
@@ -55,9 +55,9 @@ const EnvAuditSchema = z.object({
 @Injectable()
 export class DevAgentsService {
   constructor(
-    private readonly modelFactory: DevAgentsModelFactory,
-    private readonly readmeGenerator: ReadmeGeneratorService,
-    private readonly sessionLogs: SessionLogsService,
+    @Inject(DevAgentsModelFactory) private readonly modelFactory: DevAgentsModelFactory,
+    @Inject(ReadmeGeneratorService) private readonly readmeGenerator: ReadmeGeneratorService,
+    @Inject(SessionLogsService) private readonly sessionLogs: SessionLogsService,
   ) {}
 
   async getCurrentDiff(request: CurrentDiffRequest = {}): Promise<CurrentDiffResponse> {

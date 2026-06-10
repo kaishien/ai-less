@@ -4,6 +4,7 @@ import { isLangfuseEnabled, normalizeTraceMetadata } from './langfuse-env';
 
 export interface LangfuseTraceOptions {
   name: string;
+  component?: string;
   sessionId?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
@@ -14,7 +15,7 @@ export function createLangfuseConfig(options: LangfuseTraceOptions): RunnableCon
     return undefined;
   }
 
-  const tags = ['ai-less', 'dev-agents', ...(options.tags ?? [])];
+  const tags = ['ai-less', options.component ?? 'dev-agents', ...(options.tags ?? [])];
   const traceMetadata = normalizeTraceMetadata(options.metadata);
 
   return {
