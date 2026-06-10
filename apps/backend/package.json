@@ -11,14 +11,24 @@
     "test": "node --import tsx --test src/**/*.spec.ts"
   },
   "dependencies": {
+    "@langchain/core": "^1.1.48",
+    "@langchain/openai": "^1.4.7",
+    "@langfuse/core": "^5.4.1",
+    "@langfuse/langchain": "^5.4.1",
+    "@langfuse/openai": "^5.4.1",
+    "@langfuse/otel": "^5.4.1",
+    "@langfuse/tracing": "^5.4.1",
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
+    "@opentelemetry/sdk-node": "^0.207.0",
     "chonkie": "^0.2.6",
     "dotenv": "^17.4.2",
+    "langchain": "^1.4.4",
     "openai": "^6.41.0",
     "reflect-metadata": "latest",
-    "rxjs": "latest"
+    "rxjs": "latest",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "latest",

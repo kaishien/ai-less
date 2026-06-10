@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, DatabaseZap, MessageSquareText, Route } from 'lucide-react';
+import { ArrowRight, Bot, DatabaseZap, GitCommitHorizontal, MessageSquareText, Route } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +19,14 @@ const sections = [
     status: 'Заготовка',
     meta: ['Qdrant', 'Chunking', 'Sources'],
   },
+  {
+    title: 'Dev Agents',
+    description: 'LangChain-агенты для commit messages, staged diff и аудита env-ключей.',
+    href: '/dev-agents',
+    icon: GitCommitHorizontal,
+    status: 'Практика',
+    meta: ['LCEL', 'Tools', 'Structured output'],
+  },
 ];
 
 export const DashboardPage = () => (
@@ -32,7 +40,7 @@ export const DashboardPage = () => (
           </div>
           <h1 className="m-0 text-2xl font-semibold leading-tight text-zinc-50 md:text-3xl">Панель приложений</h1>
           <p className="m-0 mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-            Выбери рабочий режим: текущий ассистент или будущий RAG-пайплайн по документам.
+            Выбери рабочий режим: ассистент, RAG-пайплайн или практику с LangChain dev-агентами.
           </p>
         </div>
         <Button asChild className="w-full md:w-auto">
@@ -43,7 +51,7 @@ export const DashboardPage = () => (
         </Button>
       </header>
 
-      <section className="grid flex-1 content-start gap-4 py-6 md:grid-cols-2 md:py-8" aria-label="Разделы приложения">
+      <section className="grid flex-1 content-start gap-4 py-6 md:grid-cols-2 xl:grid-cols-3 md:py-8" aria-label="Разделы приложения">
         {sections.map((section) => (
           <Link
             key={section.href}

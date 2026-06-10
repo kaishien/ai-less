@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
+import { observeOpenAI } from '@langfuse/openai';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { isLangfuseEnabled } from '../langfuse/langfuse-env';
 
 @Injectable()
 export class OpenAiClientProvider {
@@ -19,9 +21,15 @@ export class OpenAiClientProvider {
       );
     }
 
-    this.client = new OpenAI({
+    const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+
+    this.client = isLangfuseEnabled()
+      ? observeOpenAI(openai, {
+          tags: ['ai-less', 'openai'],
+        })
+      : openai;
 
     return this.client;
   }
