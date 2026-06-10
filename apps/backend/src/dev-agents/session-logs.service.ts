@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -30,7 +30,7 @@ const AnalyzeSessionLogsSchema = z.object({
 
 @Injectable()
 export class SessionLogsService {
-  constructor(private readonly modelFactory: DevAgentsModelFactory) {}
+  constructor(@Inject(DevAgentsModelFactory) private readonly modelFactory: DevAgentsModelFactory) {}
 
   captureSessionLog(request: CaptureSessionLogRequest): SessionLogsResponse {
     const level = this.normalizeCaptureLogLevel(request.level);

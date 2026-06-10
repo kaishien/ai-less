@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Res } from '@nestjs/common';
+import { writeNdjsonResponse } from '../common/streaming/ndjson-response';
 import { DispatcherService } from './dispatcher.service';
 import {
   DispatcherGraphResponse,
@@ -24,5 +25,10 @@ export class DispatcherController {
   @Post('run')
   run(@Body() body: DispatcherRunRequest): Promise<DispatcherRunResponse> {
     return this.dispatcherService.run(body);
+  }
+
+  @Post('run/stream')
+  async runStream(@Body() body: DispatcherRunRequest, @Res() response: any) {
+    await writeNdjsonResponse(response, this.dispatcherService.runStream(body));
   }
 }

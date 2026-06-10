@@ -63,6 +63,30 @@ export interface DispatcherRunResponse {
   trace: DispatcherTraceStep[];
 }
 
+export type DispatcherStreamEvent =
+  | {
+      type: 'started';
+      result: DispatcherRunResponse;
+    }
+  | {
+      type: 'node';
+      node: string;
+      step: DispatcherTraceStep;
+      result: DispatcherRunResponse;
+    }
+  | {
+      type: 'result';
+      result: DispatcherRunResponse;
+    }
+  | {
+      type: 'done';
+      result: DispatcherRunResponse;
+    }
+  | {
+      type: 'error';
+      message: string;
+    };
+
 export interface DispatcherGraphResponse {
   mermaid: string;
 }

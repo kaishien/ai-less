@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { startObservation } from '@langfuse/tracing';
 import type { LangfuseObservation } from '@langfuse/tracing';
@@ -33,7 +33,7 @@ type ReadmeObservation = LangfuseObservation & {
 
 @Injectable()
 export class ReadmeGeneratorService {
-  constructor(private readonly modelFactory: DevAgentsModelFactory) {}
+  constructor(@Inject(DevAgentsModelFactory) private readonly modelFactory: DevAgentsModelFactory) {}
 
   async *streamGenerateReadme(request: ReadmeGenerateRequest = {}): AsyncGenerator<ReadmeGenerateStreamEvent> {
     const projectPath = request.projectPath?.trim() || '.';
